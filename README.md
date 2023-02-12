@@ -1,4 +1,6 @@
 
+SMT based parameter identifiable combination detection
+
 Requirements:
 1. Install dReal3 (https://github.com/dreal/dreal3)
 2. Install python (python version > 3.0) packages: 
