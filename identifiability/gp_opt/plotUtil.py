@@ -64,11 +64,11 @@ def fixed_fn_set(x, *pm):
 		return p/x
 	elif op == 4:# SUB y = p*x
 		return p*x
-	# elif op == 5:# FN1 y = p*x^2
-	# 	return p*x^2	
-	# elif op == 6:# FN1 y = p*x^(0.5)
-	# 	return p*np.sqrt(x)
-	elif op == 5:# FN1 y = p/x^2
+	elif op == 5:# FN1 y = p*x^2
+		return p*x^2	
+	elif op == 6:# FN1 y = p*x^(0.5)
+		return p*np.sqrt(x)
+	elif op == 6:# FN1 y = p/x^2
 		return p/x^2	
 	elif op == 6:# FN1 y = p/x^(0.5)
 		return p/np.sqrt(x)
@@ -135,20 +135,20 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 			elif op == 4:# SUB y = p*x
 				s2 = '{1} / {0} = {2:0.2f}'.format(names[0], names[1], p)  
 				s1 = '{1} / {0}'.format(names[0], names[1])  
-			# elif op == 5:# FN1 y = p*x^2
-			# 	s2 = '{1} = {2:0.2f}*{0}^2'.format(names[0], names[1], p)  	
-			# 	s1 = '{1}/{0}^2'.format(names[0], names[1])  	
-			# elif op == 6:# FN1 y = p*x^(0.5)
-			# 	s2 = '{1}^2 = {2:0.2f}*{0}'.format(names[0], names[1], p**2)  
-			# 	s1 = '{1}^2 /{0}'.format(names[0], names[1])  
-			elif op == 5:# FN1 y = p/x^2
-				s2 = '{0}^2*{1} = {2:0.2f}'.format(names[0], names[1], p)  
-				s1 = '{0}^2*{1}'.format(names[0], names[1])  
+			elif op == 5:# FN1 y = p*x^2
+				s2 = '{1} = {2:0.2f}*{0}^2'.format(names[0], names[1], p)  	
+				s1 = '{1}/{0}^2'.format(names[0], names[1])  	
+			elif op == 6:# FN1 y = p*x^(0.5)
+				s2 = '{1}^2 = {2:0.2f}*{0}'.format(names[0], names[1], p**2)  
+				s1 = '{1}^2 /{0}'.format(names[0], names[1])  
+			# elif op == 6:# FN1 y = p/x^2
+				# s2 = '{0}^2*{1} = {2:0.2f}'.format(names[0], names[1], p)  
+				# s1 = '{0}^2*{1}'.format(names[0], names[1])  
 				# return p/x^2	
-			elif op == 6:# FN1 y = p/x^(0.5)
-				s2 = '{0}*{1}^2 = {2:0.2f}'.format(names[0], names[1], p**2)  
-				s1 = '{0}*{1}^2'.format(names[0], names[1])  
-				# return p/np.sqrt(x)
+			# elif op == 6:# FN1 y = p/x^(0.5)
+			# 	s2 = '{0}*{1}^2 = {2:0.2f}'.format(names[0], names[1], p**2)  
+			# 	s1 = '{0}*{1}^2'.format(names[0], names[1])  
+			# 	# return p/np.sqrt(x)
 	
 			return s2, s1
 	def rational(x, p, q):
@@ -205,14 +205,14 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 			return p/x
 		elif op == 4:# DIV y = p*x
 			return p*x
-		# elif op == 5:# FN1 y = p*x^2
-		# 	return p*x**2	
-		# elif op == 6:# FN1 y = p*x^(0.5)
-		# 	return p*np.sqrt(x)
-		elif op == 5:# FN1 y = p/x^2
-			return p/x**2	
-		elif op == 6:# FN1 y = p/x^(0.5)
-			return p/np.sqrt(x)
+		elif op == 5:# FN1 y = p*x^2
+			return p*x**2	
+		elif op == 6:# FN1 y = p*x^(0.5)
+			return p*np.sqrt(x)
+		# elif op == 6:# FN1 y = p/x^2
+		# 	return p/x**2	
+		# elif op == 6:# FN1 y = p/x^(0.5)
+			# return p/np.sqrt(x)
 		else:
 			return p
 

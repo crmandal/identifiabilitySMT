@@ -689,7 +689,7 @@ def main(argv):
 			par_low.append(sbox_map[it].leftBound())
 			par_up.append(sbox_map[it].rightBound())
 		engine = qmc.LatinHypercube(len(par_names))#,)
-		lhs_sample1 = engine.random(n=max(100,5**len(par_names)))
+		lhs_sample1 = engine.random(n=min(100,5**len(par_names)))
 		lhs_sample = qmc.scale(lhs_sample1,  par_low, par_up)
 		print('LHS discrepancy', qmc.discrepancy(lhs_sample1))
 		print(lhs_sample)
@@ -1050,7 +1050,7 @@ def main(argv):
 					# decided_boxes.append(b)
 
 					if b.min_side_width() >= 0.5*MIN_EPS:
-						bg = approx.getGRID(b, sbox_all, MIN_EPS)
+						bg = b #.addDelta()#approx.getGRID(b, sbox_all, MIN_EPS)
 						kdt_false = kdt_false.insert(kdi.KDInterval(bg))
 
 				elif(r == TRUE):    
@@ -1081,7 +1081,7 @@ def main(argv):
 						# decided_boxes.append(b)     
 						checked_boxes.append(b)
 						
-						bg = approx.getGRID(b, sbox_all, RES).addDelta(MIN_EPS_4)
+						bg = approx.getGRID(b, sbox_all, RES)#.addDelta(MIN_EPS_4)
 						kdt_true = kdt_true.insert(kdi.KDInterval(bg))
 
 				else: 
@@ -1129,7 +1129,7 @@ def main(argv):
 							checked_boxes.append(b)
 							# if IVT:
 							
-							bg = approx.getGRID(b, sbox_all, RES).addDelta(MIN_EPS_4)
+							bg = approx.getGRID(b, sbox_all, RES) #.addDelta(MIN_EPS_4)
 							kdt_true = kdt_true.insert(kdi.KDInterval(bg)) #.addDelta(MIN_EPS_4)))
 					else:
 						# delta1 = dt #min(sbox.minDimension() * 0.1, MIN_DELTA)
