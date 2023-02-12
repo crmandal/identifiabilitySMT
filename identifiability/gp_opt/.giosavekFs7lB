@@ -1,0 +1,3184 @@
+#gp_opt/check_box_npg_no_slice.py -i eisen/bb1/bbDrag.drh -o eisen/bb1/bbDrag_Out.txt -d eisen/bb1/bbDrag.csv -f eisen/bb1/bbDefault.txt > logs/bb_log_np_grad.txt
+
+#gp_opt/check_box_npg_no_slice.py -i eisen/bb1/bbDrag_area.drh -o eisen/bb1/bbDrag_area_Out.txt -d eisen/bb1/bbDrag_area.csv -f eisen/bb1/bb_area_Default.txt > logs/bb_log_npg_area.txt
+# sage --python gp_opt/check_box_npg_no_slice.py -i eisen/th_ei/eisen_brain.drh -o eisen/th_ei/eisen_brain_out.txt -d eisen/th_ei/eisen_brain.csv -f eisen/th_ei/eisen_brain_default.txt > logs/th_eisen_npg.txt
+
+# eisen/th_ei/eisen_brain.drh -d 0.01 -o eisen/th_ei/eisen_brain_out.txt -p eisen/th_ei/eisen_brain_default.txt
+# sage --python gp_opt/check_box_npg_no_slice.py -i eisen/th_ei/eisen_brain.drh -o eisen/th_ei/eisen_brain_out.txt -d eisen/th_ei/eisen_brain.csv -f eisen/th_ei/th_Default_params.csv > logs/th_eisen_npg.txt
+
+#nohup sage --python gp_opt/check_box_npg_no_slice.py -i eisen/pc/pc.drh -o eisen/pc/pc_out.txt -d eisen/pc/pc.csv -f eisen/pc/pc_Default_params.csv > logs/pc_npg.txt &
+
+#nohup sage --python gp_opt/check_box_npg_no_slice.py -i eisen/bb2/bbDrag.drh -o eisen/bb2/bbDrag_Out.txt -d eisen/bb2/bbDrag.csv -f eisen/bb2/bbDefault_params.csv > logs/bb2_npg.txt &
+#nohup sage --python gp_opt/check_box_npg_no_slice.py -i eisen/test/ex_1.drh -o eisen/test/ex_1_Out.txt -d eisen/test/ex_1.csv -f eisen/test/ex1_Default_params.csv > logs/ex1_npg_timed_142.txt &
+#nohup sage --python gp_opt/check_box_npg_no_slice.py -i eisen/test2/ex_2.drh -o eisen/test2/ex_2_Out.txt -d eisen/test2/ex_2.csv -f eisen/test2/ex2_Default_params.csv > logs/ex2_npg_timed_49.txt &
+#nohup sage --python gp_opt/check_box_npg_cc_nr.py -i eisen/bb3/bbDrag.drh -o eisen/bb3/bbDrag_Out.txt -d eisen/bb3/bbDrag.csv -f eisen/bb3/bbDefault_params.csv -s eisen/bb3/bb_connected.csv > logs/bb3_cc_npg.txt &
+#nohup sage --python gp_opt/check_box_npg_cc_nr.py -i eisen/pc/pc.drh -o eisen/pc/pc_out.txt -d eisen/pc/pc.csv -f eisen/pc/pc_Default_params.csv > logs/pc_npg.txt &
+
+# nohup sage --python gp_opt/check_box_test.py -i eisen/test/ex_1.drh -o eisen/test/ex_1_Out.txt -d eisen/test/ex_1.csv -f eisen/test/ex1_Default_params.csv > logs/ex1_npg_cc.txt &
+#nohup sage --python gp_opt/check_box_test.py -i eisen/eg/eg.drh -o eisen/eg/eg_out.txt -d eisen/eg/eg.csv -f eisen/eg/eg_Default_params.csv > logs/eg_npg.txt &
+#nohup sage --python gp_opt/check_box_test.py -i eisen/th_ei/eisen_brain.drh -o eisen/th_ei/eisen_brain_out.txt -d eisen/th_ei/eisen_brain.csv -f eisen/th_ei/th_Default_params.csv > logs/th_eisen_npg.txt &
+# nohup sage --python gp_opt/check_box_test.py -i eisen/pc/pc.drh -o eisen/pc/pc_out.txt -d eisen/pc/pc.csv -f eisen/pc/pc_Default_params.csv > logs/pc_npg.txt &
+# nohup sage --python gp_opt/check_box_test.py -i eisen/bb3/bbDrag.drh -o eisen/bb3/bbDrag_Out.txt -d eisen/bb3/bbDrag.csv -f eisen/bb3/bbDefault_params.csv -s eisen/bb3/bb_connected.csv > logs/bb3_cc_npg.txt &
+#nohup sage --python gp_opt/check_box_test.py -i eisen/bb22/bbDrag.drh -o eisen/bb22/bbDrag_Out.txt -d eisen/bb22/bbDrag.csv -f eisen/bb22/bbDefault_params.csv -s eisen/bb22/bb_connected.csv > logs/bb22_cc_npg.txt &
+#nohup sage --python gp_opt/check_box_test.py -i eisen/test/ex_1.drh -o eisen/test/ex_1_Out.txt -d eisen/test/ex_1.csv -f eisen/test/ex1_Default_params.csv > logs/ex1_npg_cc.txt &
+
+from __future__ import print_function
+import os
+import queue
+import subprocess
+import re
+import sys, getopt, gc
+import csv, math
+
+import multiprocessing
+# from multiprocessing import Pool#, Queue, Process
+from pathos.multiprocessing import ProcessingPool
+from scipy.spatial import ConvexHull
+
+import collections
+from collections import OrderedDict
+from decimal import Decimal
+from scipy.stats import qmc
+from scipy import interpolate
+
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_samples, silhouette_score
+from sklearn_extra.cluster import KMedoids
+
+from sklearn.metrics import davies_bouldin_score
+
+import warnings
+# with warnings.catch_warnings():
+warnings.filterwarnings("ignore")
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+#from model.property import *
+from model.haModel import *
+from model.phaModel import *
+from model.ha_factory import *
+from model.node import *
+from parser.parseSTL import *
+from parser.parseParameters import *
+from parser.parseEquations import *
+
+#from model.interval import *
+#from model.box import *
+#from model.condition import *
+import numpy as np
+import random as rnd
+#from util.reach import *
+from util.graph import *
+from util.stack import *
+from util.heap import *
+from ha2smt.smtEncoder import *
+from paramUtil.interval import *
+from paramUtil.box import *
+import paramUtil.box_factory as bfact
+from util.parseOutput import *
+from util.smtOutput import *
+#from paramUtil.readDataBB import *
+from model.node_factory import *
+from ha2smt.smtEncoder import *
+import ha2ode.HA2ode as hode
+from sklearn.cluster import KMeans
+import paramUtil.kd_interval as kdi
+import paramUtil.kd_intervaltree as kdivt
+from scipy.spatial import cKDTree
+
+import numpy
+import time
+
+PLOT = hode.PLOT
+if PLOT:
+	import matplotlib
+	# matplotlib.use('Agg')
+	import matplotlib.pyplot as plt
+	from matplotlib.backends.backend_pdf import PdfPages
+	from matplotlib.patches import Rectangle
+
+import itertools
+
+import gp_classifier_dReach as gpc
+import gp_regres_grad_test as gp_grad
+
+# fig = plt.figure()
+import random
+#random.seed(10)
+
+tempfolder = os.path.join('temp','testBox')
+SAT = 51
+UNSAT = 52
+UNKNOWN = -1
+TRUE = 1
+FALSE = 0
+UNDET = 2
+ONLYMARKED = 1
+NOMARK = 0
+PATH_LEN = 2
+DELTA = 0.15
+# EPS = 0.001
+# N_GRIDS = 0.001
+# E_GRIDS = 0.001
+# MIN_EPS = 0.001
+# MIN_DELTA = 0.00001
+# DATA_NOISE = 0.1 #0.015
+
+EPS = 0.05
+N_GRIDS = 0.1
+E_GRIDS = 0.2
+# changed on 11/05/2022
+MIN_EPS_3 = 0.002
+MIN_EPS1 = 0.005
+DELTA = 0.0001
+MIN_DELTA1 = 0.00001
+# MIN_DELTA = 0.0001 #for pc
+DATA_NOISE1 = 0.01 
+TIME_NOISE1 = 0.08
+# DATA_NOISE = 0.02 #for bb 
+#and pc
+noise = {}
+# DEBUG = True
+DEBUG = False
+dRealCmd = "dReal"
+# Optimizer = collections.namedtuple('Optimizer', ['x', 'fun', 'success'])
+Instance = collections.namedtuple('Instance', ['p1', 'p2'])
+BoxEvaluate = collections.namedtuple('BoxEvaluate', ['ip', 'op'])
+one_time = 0
+PropRow = 0
+rank = 0
+RESUME = False
+# RESUME = True
+TEST = False
+# TEST = True
+GPC = True
+GPC_INT = False
+# GPC_INT = True
+IVT = False
+# IVT = True
+# INSTANCE = False
+INSTANCE = True
+GP_thres = 0.1
+GP_Window = 100
+MAX_clusters = 30
+FREQUENT = 50 #0
+CLEAN_GEN = 300
+
+DATA_tp = 4
+FNAME = 'pc'
+samples_per_dim = 3
+
+MIN_DELTA = 0.001 if FNAME == 'pc' else MIN_DELTA1
+DATA_NOISE = 0.02 if FNAME == 'bb' else DATA_NOISE1
+TIME_NOISE = 0.11 if FNAME == 'bb'or FNAME == 'pc' else TIME_NOISE1
+MIN_EPS = 0.005 if FNAME == 'pc' else MIN_EPS1
+MIN_EPS_2 = 2*MIN_EPS
+MIN_EPS_3 = MIN_EPS
+PATH_LEN = 12 if FNAME == 'bb'or FNAME == 'pc' else 2
+
+TB_N = 8*MIN_EPS
+EB_N = 0.5 #2*EPS
+MAX_EPS = 30*MIN_EPS
+
+# from enum import Enum
+class BoxTyp(object):
+	APPROX = 1
+	EXT = 2
+
+
+class BoxInfo(object):
+	"""docstring for ClassName"""
+	def __init__(self, *tuple):
+		super(BoxInfo, self).__init__()
+		self.pri = tuple[0]
+		self.box = tuple[1]
+		self.delta = tuple[2]
+		self.prop = tuple[3]
+		self.ttyp = tuple[4]
+
+	def __lt__(self, nxt):
+		return self.pri < nxt.pri
+
+	def __gt__(self, nxt):
+		return self.pri > nxt.pri
+
+	def __eq__(self, nxt):
+		return self.pri == nxt.pri
+
+	def __le__(self, nxt):
+		return self.pri <= nxt.pri
+
+	def __ge__(self, nxt):
+		return self.pri >= nxt.pri
+
+	def getInfo(self):
+		return self.pri, self.box, self.delta, self.prop, self.ttyp
+		
+	def __repr__(self):
+		sk = str(self.pri) + ', ' + str(self.box) + ', '+ str(self.delta)+ ', '+ str(self.prop)+', '+ str(self.ttyp)
+		return sk
+
+	def __str__(self):
+		return self.__repr__()
+		
+def findsubsets(S,m):
+	return set(itertools.combinations(S, m))
+
+def plotBox(currentAxis, b, combs, boxType= FALSE):
+	#if boxType = TRUE:
+	# print(boxType)
+	col = 'white'
+	if boxType == TRUE:
+		col = 'blue'
+	elif boxType == UNDET:
+		col = 'white'
+	elif boxType == FALSE:
+		col = 'black'
+	# plt.figure()  
+	if b.size() == 2:
+		b_edges = b.get_map()
+		x = []
+		w = []
+		for it in combs:
+			intrvl = b_edges[it]
+			x.append(intrvl.leftBound())
+			w.append(intrvl.width())
+		currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor=col, alpha=1))
+	# plotBox.show()
+	# return plt
+
+def getPropSMT(tp, pid, i, neg):
+	fn ='temp_npg_'+str(FNAME)+'_p_'+str(tp)+'_'+str(pid)+'_'+str(i)
+	if neg :
+		fn = 'tempC_npg_'+FNAME+'_p_'+str(tp)+'_'+str(pid)+'_'+str(i)
+	return fn
+
+def main(argv):
+	k_length = PATH_LEN
+	d = DELTA   
+	#global EPS
+	#EPS = 1 * d
+	one_time = 0
+	pName = 'plotBox_grad_no_slice_'+FNAME+'.pdf'
+	satName = 'satbox_grad_no_slice_'+FNAME+'.csv'
+
+	# inputfile = sys.argv[1]
+	# paramfile = sys.argv[2]
+	# datafile = sys.argv[3]
+	paramfile = ''
+	paramdefaultfile = ''
+	connectedfile = ''
+	
+	try:
+		opts, args = getopt.getopt(argv,"hi:p:o:d:f:s:",["ifile=","pfile=", "ofile=", "dfile=","defaultparam=","compnt="])
+	except getopt.GetoptError:
+			print("Box.py -i <inputfile> -p <paramFile> -o <outputfile> -d <dataFile> -f <defaultparam>")
+			sys.exit(2)
+			
+	for opt, arg in opts:
+		if opt == '-h':
+			print("Box.py -i <inputfile> -p <paramFile> -o <outputfile> -d <dataFile> -f <defaultparam>")
+			sys.exit()
+		elif opt in ("-i", "--ifile"):
+			inputfile = arg
+			print("Input file is :" + inputfile)
+		elif opt in ("-p", "--pfile"):
+			paramfile = arg
+			print("Param file is :" + paramfile)
+		elif opt in ("-o", "--ofile"):
+			outputfile = arg
+			print("Output file is :" + outputfile)
+		elif opt in ("-d", "--datafile"):
+			datafile = arg
+			print("Data file is :" + datafile)
+		elif opt in ("-f", "--defaultparam"):
+			paramdefaultfile = arg
+			print("paramdefault file is :" + paramdefaultfile)
+		elif opt in ("-s", "--compnt"):
+			connectedfile = arg
+			print("Connected components file is :" + connectedfile)
+
+	prefix = inputfile.split('.')[0]+'_'
+	outfile = prefix+satName
+	# ha = getModel(inputfile)
+	# print('model parsed')
+	#print(str(ha))
+
+	plotName = prefix+pName
+
+	'''	
+	simulateFile = 'simulateHA.py'
+
+	sim_ha = hode.createSimulator(datafile, inputfile, outputfile, 0.001, paramdefaultfile)
+	
+	f = open(simulateFile, "w+")
+	f.write(sim_ha)
+	f.close()
+
+	import simulateHA as sim
+
+	default_params = sim.getDefaultParams()
+	param_names = sim.getParamNames()
+
+	'''
+	# initialisation = {}
+	if len(paramfile) > 0:
+		init_params = getEquationsFile(paramfile)
+		print('Initialisation')
+		for var in init_params:
+			print(var + ' : '+ str(init_params[var]))
+
+	default_params_all = []
+	default_param_boxes = []
+	with open(paramdefaultfile, 'r') as csvfile:
+		# creating a csv reader object
+		csvreader = csv.reader(csvfile)
+
+		# extracting field names through first row
+		param_names = next(csvreader)
+		print('from_default_file', param_names)
+		sys.stdout.flush()
+		# extracting each data row one by one
+		for row in csvreader:
+			f_row = []
+			for i in range(len(row)):
+				f_row.append(float(row[i]))
+			default_params_all.append(f_row)
+			# print(f_row)
+			#sys.stdout.flush()
+			default_param_box = {}
+			i = 0
+			for it in param_names:
+				#b_edges.update({it:PyInterval(default_params[i]*(1-MIN_DELTA), default_params[i]*(1+MIN_DELTA))})
+				# print(i, it)
+				default_param_box.update({it:f_row[i]})
+				i+= 1
+			print('default_params', param_names, f_row, default_param_box)
+
+			default_param_boxes.append(default_param_box)
+
+	def ifSubset(s1, s2):
+		# if set s2 is a subset of set s1
+		flag = True
+		for s in s2:
+			if s not in s1:
+				flag = False
+				break
+		return flag
+	
+	def intersection(s1, s2):
+		# ifntersection of set s1, set s2
+		res = []
+		for s in s2:
+			if s in s1:
+				res.append(s)
+		return res
+
+	print(param_names)
+	connectedComponents = []
+	if len(connectedfile) > 0:
+		with open(connectedfile, 'r') as csvfile:
+			# creating a csv reader object
+			csvreader = csv.reader(csvfile)
+			for row in csvreader:
+				rm = ['{0}'.format(r) for r in row]
+				if ifSubset(param_names, rm):
+					connectedComponents.append(row)
+	else:
+		connectedComponents = [param_names]
+	
+	print('connectedComponents', connectedComponents)
+
+	default_param_box = default_param_boxes[0]
+	default_params = default_params_all[0]
+
+	all_sat_file = prefix+'sat_box_npg_'+FNAME+'.csv' #.format(rank)
+	all_q_file = prefix+'queued_box_npg_'+FNAME+'.csv' #.format(rank)
+	if not RESUME:
+		fp = open(all_sat_file, 'w')
+		fp.close()
+		fp = open(all_q_file, 'w')
+		fp.close()
+	fp = open(outfile, 'w+')
+	fp.close()
+
+	def getEstimatedParameters(model, params, d, klen, all_props): #, satfile):
+		sbox_all = getBox(params)
+		#print(box, type(box))
+		sat_box = {}
+		unsat_box = {}
+		undet_box = {}
+		global noise
+		# noise.update({'radius':0.001})
+		# # noise.update({'g': 0.001})	
+		# noise.update({'K': 0.001})
+		for par in params:
+			noise.update({par: d})
+
+		par_names = sorted((sbox_all.get_map()).keys())
+		pnames = ','.join(sorted(par_names))
+		print('par_names', par_names)
+		# pnames = ','.join(sorted(par_names))
+		True_Boxes = []
+		for j in range(len(default_param_boxes)):
+			b_edges = {}
+			for it in par_names:
+				#b_edges.update({it:PyInterval(default_params[i]*(1-MIN_DELTA), default_params[i]*(1+MIN_DELTA))})
+				b_edges.update({it:PyInterval(default_param_boxes[j][it])}) #, default_param_box[it])})
+			default_box = Box(b_edges) 
+			print('default_box', default_box, pnames)
+			if sbox_all.contains(default_box):
+				True_Boxes.append(default_box)
+			if j >= 0:
+				break
+
+		#True_Boxes = [default_box]
+		print('starting with default points', True_Boxes)
+		default_box = True_Boxes[0]
+		t_bs = [default_box]#, True_Boxes[1], True_Boxes[2]]
+
+		sbox_map = sbox_all.get_map()
+		par_low = []
+		par_up = []
+		for it in sorted(par_names):
+			par_low.append(sbox_map[it].leftBound())
+			par_up.append(sbox_map[it].rightBound())
+		engine = qmc.LatinHypercube(len(par_names))#,)
+		lhs_sample1 = engine.random(n=max(20,2**len(par_names)))
+		lhs_sample = qmc.scale(lhs_sample1,  par_low, par_up)
+		print('LHS discrepancy', qmc.discrepancy(lhs_sample1))
+		# print(lhs_sample)
+
+
+		# x_test = {}
+		# for i in range(len(par_names)):
+		# 	pn = par_names[i]
+		# 	il = bfact.min_left_coordinate_value(t_bs, pn) * 10.0/15
+		# 	ul = bfact.max_right_coordinate_value(t_bs, pn) * 15.0/10 
+		# 	x_test.update({pn:PyInterval(il, ul)})
+		# b2 = Box(x_test)
+		# print('starting box', str(b2))
+		# delta_to_use = getBoxDelta(b2) #b2.max_side_width()*N_GRIDS
+		# boxes_to_check = [(b2, delta_to_use)]
+
+		boxes_to_check = []
+		for tb in True_Boxes:
+			x_test = {}
+			for i in range(len(par_names)):
+				pn = par_names[i]
+				# il = bfact.min_left_coordinate_value([tb], pn) * 10.0/12.0
+				# ul = bfact.max_right_coordinate_value([tb], pn) * 12.0/10 
+				il = bfact.min_left_coordinate_value([tb], pn) - 2*EB_N
+				ul = bfact.max_right_coordinate_value([tb], pn) + 2*EB_N
+				x_test.update({pn:PyInterval(il, ul)})
+			b2 = Box(x_test)
+			print('starting box', str(b2))
+			delta_to_use = getBoxDelta(b2) #b2.max_side_width()*N_GRIDS
+			boxes_to_check.append((b2, delta_to_use))
+
+		pnames = sorted(par_names)
+		# for lhs in lhs_sample:
+		# 	x_test = {}
+		# 	for i in range(len(par_names)):
+		# 		pn = pnames[i]	
+		# 		il = lhs[i]* 10.0/10.5
+		# 		ul = lhs[i]* 10.5/10
+		# 		x_test.update({pn:PyInterval(il, ul)})
+		# 	b2 = Box(x_test)
+		# 	delta_to_use = getBoxDelta(b2) #b2.max_side_width()*N_GRIDS
+		# 	boxes_to_check.append((b2, delta_to_use))
+		# boxes_to_check = new_boxes_to_check_after_regres
+	
+		# print('GP_xtest box size {0}'.format(len(extra_boxes)), len(partitions), len(boxes_to_check))     
+		
+		(bt, bf, bu) = getBoxes(model, params, all_props, sbox_all, boxes_to_check, klen, True_Boxes)
+		print('sat boxes', len(bt), len(all_props)) #, bt)
+
+		# sat_box.update({pnames:bt})
+		# unsat_box.update({pnames:bf})
+		# undet_box.update({pnames:bu})
+
+		sat_box = bt
+		unsat_box = bf
+		undet_box = bu
+	
+		return (sat_box, unsat_box, undet_box)
+	
+
+	def boxtopoint(b, param_names = []):
+		bmap = b.get_map()
+		if len(param_names) == 0:
+			param_names = sorted(bmap.keys())
+		pts = []
+		for it in sorted(param_names):
+			pts.append((bmap[it].leftBound() + bmap[it].rightBound())/2)
+		# print(p, bmap)
+		return pts
+
+	def getHull(boxes):
+		true_points = [boxtopoint(tb) for tb in boxes]
+		hull = ConvexHull(true_points)
+		return hull
+
+	def getHullBoundary(boxes, hull = None):
+		if not hull:
+			hull = getHull(boxes)
+		select_c3 = [boxes[i] for i in hull.vertices]
+		return select_c3
+
+
+	def isInHull(box, hull, tolerance=1e-12):
+		if hull:
+			point = boxtopoint(box)
+			return all( (np.dot(eq[:-1], point) + eq[-1] <= tolerance) for eq in hull.equations)
+		else:
+			return True
+
+	def isValid(x):
+		if  math.isnan(x) or math.inf == x or -math.inf == x:
+			return False
+		else:
+			# if isinstance(x, list) and len(x) > 1:
+			# 	return False
+			return True
+
+	def find_k_closest(centroids, data, k=1, distance_norm=2):
+		"""
+		Arguments:
+		----------
+			centroids: (M, d) ndarray
+				M - number of clusters
+				d - number of data dimensions
+			data: (N, d) ndarray
+				N - number of data points
+			k: int (default 1)
+				nearest neighbour to get
+			distance_norm: int (default 2)
+				1: Hamming distance (x+y)
+				2: Euclidean distance (sqrt(x^2 + y^2))
+				np.inf: maximum distance in any dimension (max((x,y)))
+
+		Returns:
+		-------
+			indices: (M,) ndarray
+			values: (M, d) ndarray
+		"""
+
+		kdtree = cKDTree(data) #, leafsize=leafsize)
+		distances, indices = kdtree.query(centroids, k, p=distance_norm)
+		if k > 1:
+			indices = indices[:,-1]
+		values = data[indices]
+		return indices, values
+
+	def getGPRBoxes(sbox, pre_envelope, current_sbox, kdt_true, kdt_false, true_boxes, par_names, gen, extra = False):
+		# true_tree =  kdivt.IntervalTree()
+		# for bb in true_boxes:
+		# 	b_ex = kdi.KDInterval(bb)
+		# 	true_tree = true_tree.insert(b_ex)
+
+		# t_boxes = []
+		# for nb in true_tree.items():
+		# 	bb = nb.toBox(par_names)
+		# 	t_boxes.append(bb)
+
+		random.seed(gen)
+		t_boxes = true_boxes
+		# kdt_npg_sat = kdivt.IntervalTree()
+		'''if len(true_boxes) < 250:
+			ldu = MIN_EPS * 2
+			udu = MIN_EPS * 5
+		elif len(true_boxes) < 1000:
+			ldu = MIN_EPS * 5
+			udu = MIN_EPS * 20
+		elif len(true_boxes) < 2000:
+			ldu = MIN_EPS * 20
+			udu = MIN_EPS * 50
+		else:	
+			ldu = MIN_EPS * 50
+			udu = MIN_EPS * 100'''
+		# elif len(true_boxes) < 2000:
+		# 	ldu = MIN_EPS * 50
+		# 	udu = MIN_EPS * 100
+		# else:	
+		# 	ldu = MIN_EPS * 100
+		# 	udu = MIN_EPS * 150
+		'''if len(true_boxes) < 250:
+			ldu = MIN_EPS * 5
+			udu = MIN_EPS * 10
+		elif len(true_boxes) < 1000:
+			ldu = MIN_EPS * 10
+			udu = MIN_EPS * 20
+		elif len(true_boxes) < 5000:
+			ldu = MIN_EPS * 20
+			udu = MIN_EPS * 50
+		else:
+			ldu = MIN_EPS * 50
+			udu = MIN_EPS * 100'''
+		# changed on 11/05/2022 	
+		# #gen%2 == 1 or	
+		if  gen%4 < 1:
+			ldu = MIN_EPS_3 * 10
+			udu = MIN_EPS_3 * 30			
+		else:
+			ldu = MIN_EPS_3 * 30
+			udu = MIN_EPS_3 * 50
+		du = np.random.uniform(ldu, udu, 1)[0] #0.05
+
+		npg = []
+		# print('t_boxes', len(t_boxes), 'gen', gen)
+		NPG = True if ((gen%2==0) and len(t_boxes) > len(par_names)) else False
+		print('In Approx boxes', gen, NPG, gen%2==0, len(t_boxes), len(par_names))
+		if NPG :
+			npg_pi, c33 = getNextBoxesFromGradient(sbox, pre_envelope, current_sbox, kdt_true, kdt_false, t_boxes, du, gen, extra = extra)
+
+			# npg_cc = []
+			# for cc in connectedComponents:
+			# 	pn = random.choice(cc)
+			# 	pi = par_names.index(pn)
+			
+				# npg_cc.append(npg_pi)
+			#npg += npg_pi
+		else:
+			npg_pi, c33 = getNextBoxesFromGPR(sbox, pre_envelope, current_sbox, kdt_true, kdt_false, t_boxes, du, gen, extra = extra)
+			# for pi in range(len(par_names)):
+				# npg_pi = getNextBoxesFromGPR(sbox, kdt_true, t_boxes, gen, extra = extra)
+				# for nb in npg_pi:
+				# 	b_ex = kdi.KDInterval(nb)
+				# 	rsat = kdt_npg_sat.search(b_ex)
+				# 	if not rsat:
+				# 		kdt_npg_sat = kdt_npg_sat.insert(b_ex)
+				#npg += npg_pi
+		npg = npg_pi
+		# for nb in npg_pi:
+		# 	b_ex = kdi.KDInterval(nb)
+		# 	rsat = kdt_npg_sat.search(b_ex)
+		# 	if not rsat:
+		# 		kdt_npg_sat = kdt_npg_sat.insert(b_ex)
+		# npg_pi = getNextBoxesFromGPR(sbox, t_boxes, out_par = 0, extra = False)
+		# for nb in npg_pi:
+		# 	b_ex = kdi.KDInterval(nb)
+		# 	kdt_npg_sat = kdt_npg_sat.insert(b_ex)
+	
+		# npg = [] #npg_pi
+		# for bb in npg_pi:
+		# 	rt = kdt_false.search(kdi.KDInterval(bb.addDelta(MIN_EPS)))
+		# 	if not rt:
+		# 		npg.append(bb)
+		return npg, c33 #kdt_npg_sat, npg
+
+	def getNextBoxesFromGPR(sbox, pre_envelope, current_sbox, kdt_true, kdt_false, true_boxes, du, gen, extra = False):
+		
+		ParValue = collections.namedtuple('ParValue', ['id', 'val'])
+		big_s_map = sbox.get_map()
+		s_map = current_sbox.get_map()
+		# en_edges = envelope.get_map()
+		all_params = s_map.keys()
+		all_param_len = len(all_params)
+		param_names_sorted = sorted(all_params)
+		param_index_dict = {}
+		i = 0
+		for par in param_names_sorted:
+			param_index_dict.update({par:i})
+			i +=1
+
+		# c3 = true_boxes #
+		# en_edges = envelope.get_map()
+		
+		def pointtobox(p): #, param_names = param_names_sorted):
+			bmap = {}
+			ij = 0
+			for it in sorted(param_names_sorted):
+				# changed on 11/05/2022
+				bmap.update({it:PyInterval(p[ij]*(1-MIN_DELTA/2), p[ij]*(1+MIN_DELTA/2))})
+				ij += 1
+			# print(p, bmap)
+			return Box(bmap)
+
+		envelope = bfact.get_cover(true_boxes, check=False)
+
+		#c23 = [b for b in rnd.sample(true_boxes, min(len(true_boxes), 10**all_param_len))]
+		c31 = [b for b in true_boxes] #rnd.sample(true_boxes, min(len(true_boxes), 7**all_param_len))]
+
+		stm1 = time.time()
+
+		hull = getHull(true_boxes)
+		select_c3 = getHullBoundary(true_boxes, hull)
+
+		# extended_box = extendEnvelope(envelope, sbox, du*2)
+		# en_edges = envelope.get_map()
+		# par_low = []
+		# par_up = []
+		# for it in sorted(param_names_sorted):
+		# 	par_low.append(en_edges[it].leftBound())
+		# 	par_up.append(en_edges[it].rightBound())
+
+		# engine = qmc.LatinHypercube(all_param_len)#,)
+		# lhs_sample1 = engine.random(n=max(100,2**all_param_len))
+		# lhs_sample = qmc.scale(lhs_sample1,  par_low, par_up)
+
+		
+		
+		# lhs_sample_ps = []
+		# for ls in lhs_sample:
+		# 	lhs_sample_ps.append(pointtobox(ls))
+		# # extra_boxes = bfact.remove(sbox, envelope)
+		# if extra and DEBUG:
+		# 	print('getNextBoxesFromGradient', str(sbox), str(envelope)) #, [str(b) for b in extra_boxes])
+
+		c32 = c31 #+ select_c3
+		# cb = []
+		# for b in c31:
+		# 	if b in c32:
+		# 		continue
+		# 	# if bfact.intersectsAny(b, lhs_sample_ps): 
+		# 	# 	c32.append(b)
+		# 	# elif envelope.atBoundary(b):
+		# 	# 	c3.append(b)
+		# 		# c3.append(b)
+		# 	else:
+		# 		if np.random.uniform(0, 1, 1)[0] < 0.3:
+		# 			c32.append(b)
+		c3 = select_c3
+
+		# MAXC = min(MAX_clusters, len(select_c3))
+		# changed on 11/05/2022 
+		MAXC = min(all_param_len*MAX_clusters, 5**all_param_len, len(c32)) ##MAX(MAX_clusters, len(c32))
+		X_1 = np.array([boxtopoint(b) for b in c32])
+		chosen_k = MAXC
+
+		pre_savg = -1
+		pre_score = -1
+		for n_clusters in range(2*all_param_len, MAXC):
+		# Initialize the clusterer with n_clusters value and a random generator
+		# seed of 10 for reproducibility.
+			#clusterer = KMeans(n_clusters=n_clusters, random_state=50)
+			clusterer = KMedoids(n_clusters=n_clusters, random_state=gen) #, init='heuristic'
+			cluster_labels = clusterer.fit_predict(X_1)
+
+			# The silhouette_score gives the average value for all the samples.
+			# This gives a perspective into the density and separation of the formed
+			# clusters
+			if int(gen/2)%3 == 0:
+				silhouette_avg = (pre_savg - clusterer.inertia_) # elbow method
+				if silhouette_avg < EPS:
+					chosen_k = n_clusters
+					break				
+				pre_savg =  clusterer.inertia_
+			else:
+				# silhouette_avg = -1*davies_bouldin_score(X_1, cluster_labels)
+				silhouette_avg = silhouette_score(X_1, cluster_labels)
+				#print("For n_clusters =", n_clusters, "The average silhouette_score is :", silhouette_avg)
+				if pre_score < silhouette_avg:
+					pre_score = silhouette_avg
+					chosen_k = n_clusters
+			
+
+		# clusterer = KMeans(n_clusters=chosen_k, random_state=10).fit(X_1)
+		# c33 = []
+		# # X = list(X_1)
+		# for cc in clusterer.cluster_centers_:
+		# 	# b = c32[X.index()]
+		# 	c33.append(pointtobox(cc))
+		# if len(c33) < 2:
+		# 	c33 = c31
+
+		clusterer =  KMedoids(n_clusters=chosen_k,  random_state=gen).fit(X_1) #init='heuristic',
+		centroids = clusterer.cluster_centers_
+		#centroids_1 = centroids
+		# clusterer = KMeans(n_clusters=chosen_k, random_state=gen).fit(X_1)
+		# centroids = clusterer.cluster_centers_
+		center_indices, centroids_1 = find_k_closest(centroids, X_1)
+		c33 = [] 
+		# c33 = select_c3
+		# X = list(X_1)
+		for cc in center_indices: #centroids_1:
+			b = c32[cc]
+			c33.append(b) #pointtobox(cc))
+		
+		# c33 = select_c3
+		# # X = list(X_1)
+		# for cc in centroids_1:
+		# 	# b = c32[X.index()]
+		# 	c33.append(pointtobox(cc))
+		# changed on 11/05/2022 	
+		#c3 += c33
+
+		if len(c33) < all_param_len:
+			c33 = c31
+		# c3 = c33
+		st2 = time.time()
+		print('gpr -- ', st2 -stm1, 's')
+		# end changes on 26/04/2022
+		# c3 = true_boxes #
+		
+
+		#envelope = bfact.get_cover(c3)
+		#rate = 50
+		# select some boundary points ??
+		#extra_points = sorted(rnd.sample(range(0, len(c3)), min(len(c3), rate)))
+	
+		rate = 0
+		extra_points = []
+		extra_boxes = []
+		for i in range(len(c3)):
+			tb = c3[i]
+			extra_boxes.append(tb)
+			extra_points.append(i)
+			rate += 1 
+			#
+			# if envelope.atBoundary(tb):
+			# 	extra_boxes.append(tb)
+			# 	extra_points.append(i)
+			# 	rate += 1 
+			# else:
+			# 	if np.random.uniform(0, 1, 1)[0] < 0.5:
+			# 		extra_boxes.append(tb)
+			# 		extra_points.append(i)
+			# 		rate += 1 
+
+		# extra_points += sorted(rnd.sample(range(0, len(c3)), min(len(c3), 10))) 
+		# rate += 10
+		jk = 0
+
+		new_boxes_to_check_after_regres = []
+		selected = []
+		npg_cc = []
+		for cc1 in connectedComponents:
+			jk += 1
+			cc = sorted(cc1)
+			pi = int((gen/2)%len(cc)) #0 #cc.index(pn)
+			pn = cc[pi]
+			#for pn in cc:
+			# 				
+			# pn = random.choice(cc)
+			# pi = cc.index(pn)
+			# pn = random.choice(cc)
+			# #for pn in cc:
+			# # print(cc1, pn)
+			# pi = cc.index(pn)
+			out_param = param_names_sorted.index(pn) #rnd.sample(range(param_len), 1)[0]
+			print('gpr', jk, 'cc', cc, out_param, pi, pn)
+			params = cc
+			param_len = len(params)
+
+			def getGPRTrainingPoint(sat_boxes, out_par):
+				xlist = [] #[dt]
+				ylist = []
+				for b in sat_boxes:
+					smap = b.get_map()
+					i = 0
+					blist = []
+					for key in params:
+						if (param_index_dict[key] == out_par):
+							ylist.append((smap[key].leftBound()+smap[key].rightBound())/2)
+						else:
+							blist.append((smap[key].leftBound()+smap[key].rightBound())/2)
+						i += 1
+					xlist.append(blist)
+				return xlist, ylist
+
+			GP_x, GP_y = getGPRTrainingPoint(c33, out_param)
+			# print('out_param', out_param)
+
+			# en_ex_edges = {}
+			# for it in param_names_sorted:
+			#   en_ex_edges.update({it:PyInterval(en_edges[it].leftBound()*10/12.0, en_edges[it].rightBound()*12.0/10.0)})
+			# extra_box = Box(en_ex_edges)
+
+			# subsets_2 = []
+			# for i in range(param_len):
+			# 	if i == out_param:
+			# 		continue
+			# 	else:
+			# 		tup = (param_names_sorted[out_param], param_names_sorted[i])
+			# 		subsets_2.append(tup)
+
+			# subsets_2 = [(param_names_sorted[out_param], param_names_sorted[i]) for i in range(1, param_len)]
+			
+
+			GP_xtest = []
+			# du = np.random.uniform(0.05, 0.2, 1)[0] #0.1
+			# samples_per_dim = 4
+			# ldu = 0.05 if (gen < 10000 and len(true_boxes) < 1000) else 0.05*(1+gen/100000.0)
+			# udu = 0.2 if (gen < 10000 and len(true_boxes) < 1000) else 0.2*(1+gen/100000.0)
+			# ldu = MIN_EPS * 2
+			# udu = MIN_EPS * 10
+			# du = np.random.uniform(ldu, udu, 1)[0] #0.05
+			# samples_per_dim = 4
+			ulist = [np.linspace(-du, du, samples_per_dim) for j in range(len(params)-1)]
+			# print('----', du, ulist)
+			sys.stdout.flush()
+			for ci in extra_points:
+				b = c3[ci]
+				#for b in select_c3:
+				blist = []
+				smap = b.get_map()
+				i = 0
+				for key in params:
+					if not (param_index_dict[key] == out_param):
+						blist.append((smap[key].leftBound()+smap[key].rightBound())/2)
+					i += 1
+
+				for element in itertools.product(*ulist):
+					blist1 = [blist[i] + element[i] for i in range(len(params)-1)]
+
+					# changed on 22/04/2022
+					#blist1 = [blist[i] *(1 + element[i]) for i in range(len(params)-1)]
+					GP_xtest.append(blist1)
+
+			x_edges = []
+			# print('X', np.array(GP_x).shape, 'y', np.array(GP_y).shape, 'xtest', np.array(GP_xtest).shape)
+			output_extended, mse = gp_grad.regres(np.array(GP_x), np.array(GP_y), np.array(GP_xtest))
+
+			for i in range(len(GP_xtest)):
+				xlist = GP_xtest[i]
+				y_pred = output_extended[i] #+ mse[i]
+				if isValid(y_pred):
+					row = []
+					# row = [ParValue(id = params[k], val = 0) for k in range(param_len)]
+					row.append(ParValue(id = params[pi], val = y_pred))
+					k = 0
+					for key in params:
+						if not (param_index_dict[key] == out_param):
+							# print('-- ', key, param_index_dict[key],  'out_par', out_param, 'pi', pi, 'out', params[pi], params[k])
+							row.append(ParValue(id = key, val = xlist[k]))
+							k += 1
+
+					# print('----', [params[k] for k in range(param_len)], xlist, 'out', params[pi], y_pred, row)
+					x_edges.append(row)
+
+				# print(row)
+			if DEBUG:
+				print('x_edges', len(x_edges), x_edges[0])
+
+			npg_cc.append(x_edges)
+
+		# print(len(npg_cc), len(npg_cc[0]))
+		#if len(connectedComponents)> 1:
+		npg_pi = []
+		for elem in itertools.product(*npg_cc):
+			elem1 = []
+			for item in elem:
+				elem1 += item
+			npg_pi.append(elem1)
+		# else:
+		# 	npg_pi = x_edges
+
+		for x11 in npg_pi:
+			# print()
+			x1 = [0 for k in range(all_param_len)]
+			for pk in x11:
+				# print('pk', pk)
+				pid, pval = param_index_dict[pk.id], pk.val
+				x1[pid] = pval
+			# print('x11', x11, x1)
+			sys.stdout.flush()
+			flag = True
+			x_map = {}
+			for i in range(len(param_names_sorted)):
+				pn = param_names_sorted[i]
+				if x1[i] < 0 or not (s_map[pn].leftBound() < x1[i] < s_map[pn].rightBound()):
+					flag = False
+					break
+				# ll = max(x1[i]*10.0/12, s_map[pn].leftBound())
+				# ul = min(x1[i]*12.0/10, s_map[pn].rightBound())
+				# changed on 11/05/2022 
+				ll = max(x1[i] - min(du, MIN_EPS_2), big_s_map[pn].leftBound())
+				ul = min(x1[i] + min(du, MIN_EPS_2), big_s_map[pn].rightBound())
+				# ll = max(x1[i] - 2*du, s_map[pn].leftBound())
+				# ul = min(x1[i] + 2*du, s_map[pn].rightBound())
+				# if ll > ul:
+				# 	ll = s_map[pn].rightBound()*11/12.0
+				# 	ul = s_map[pn].rightBound()
+				# print(i, pn, ll, ul)
+				x_map.update({pn:PyInterval(ll, ul)})
+				#x_map.update({pn:PyInterval(x1[i])})
+			# print(x1, x_map)
+			if flag:
+				b2 = Box(x_map)
+				# print('b2', str(b2))
+				# if extra:
+				#   print('b2', str(b2))
+				#   for bbox in extra_boxes:
+				#       if bbox.contains(b2):
+				#           #delta_to_use = b2.max_side_width()*N_GRIDS
+				#           new_boxes_to_check_after_regres.append(b2)#, delta_to_use))
+				# else:
+					#delta_to_use = b2.max_side_width()*N_GRIDS
+				
+				selected.append(b2)
+		
+		for b2 in selected:
+			# added on 25/05/2022
+			if current_sbox.contains(b2) and not pre_envelope.contains(b2):
+				rt = kdt_true.search(kdi.KDInterval(b2)) #.addDelta(MIN_EPS)))
+				if not rt:
+					new_boxes_to_check_after_regres.append(b2)
+			elif current_sbox.contains(b2):
+				# new_boxes_to_check_after_regres.append(b2)
+				rf = kdt_false.search(kdi.KDInterval(b2))
+				rt = kdt_true.search(kdi.KDInterval(b2)) #.addDelta(MIN_EPS)))
+			
+				# if not isInHull(b2, hull) and not envelope.contains(b2) :# and extended_box.contains(b2) : #or len(selected) < 20:
+				# 	new_boxes_to_check_after_regres.append(b2)#, delta_to_use))
+				# added on 21/05/2022
+				# For GPR, only search inside the envelope
+				if not isInHull(b2, hull) and envelope.contains(b2):
+					# rt = kdt_true.search(kdi.KDInterval(b2.addDelta(MIN_EPS)))
+
+					# not closer to a true region
+					if not rt:
+						# not closer to a false region
+						if not rf or len(true_boxes) < 100:
+							new_boxes_to_check_after_regres.append(b2)
+					
+						# not closer to a true region may be closer to a false region
+						# elif rf and (np.random.uniform(0, 1, 1)[0] < 0.1):
+						# 	new_boxes_to_check_after_regres.append(b2)
+
+				elif isInHull(b2, hull) and np.random.uniform(0, 1, 1)[0] < 0.1:
+					# rt = kdt_true.search(kdi.KDInterval(b2.addDelta(MIN_EPS)))
+					# if not rt:
+					# npg.append(bb)
+					# not closer to a false and true region
+					if not (rt or rf) or len(true_boxes) < 50 : #or (np.random.uniform(0, 1, 1)[0]  < 0.5 
+						new_boxes_to_check_after_regres.append(b2)
+
+					# elif not rf and (np.random.uniform(0, 1, 1)[0] < 0.1):
+					# 	new_boxes_to_check_after_regres.append(b2)
+				# else:
+				# 	if not rt and rf and (np.random.uniform(0, 1, 1)[0]  < 0.1): # closer to a false region but not closer true region
+				# 		new_boxes_to_check_after_regres.append(b2)
+
+		# print()
+		print('gen', gen, 'gpr', len(new_boxes_to_check_after_regres), len(extra_points), 'time taken -- ', time.time() - st2, 's') 
+		return new_boxes_to_check_after_regres, c33
+
+	def getNextBoxesFromGradient(sbox, pre_envelope, current_sbox, kdt_true, kdt_false, true_boxes, du, gen, extra = False):
+	# def getNextBoxesFromGradient(sbox, kdt_true, true_boxes, du, gen, extra = False):
+		
+		envelope = bfact.get_cover(true_boxes, check = False)
+
+		# extended_box = extendEnvelope(envelope, sbox, du*2)
+
+		# extra_boxes = bfact.remove(sbox, envelope)
+		# if extra and DEBUG:
+		# 	print('getNextBoxesFromGradient', str(sbox), str(envelope)) #, [str(b) for b in extra_boxes])
+
+		
+		# # extra_boxes = bfact.remove(sbox, envelope)
+		# if extra and DEBUG:
+		# 	print('getNextBoxesFromGradient', str(sbox), str(envelope)) #, [str(b) for b in extra_boxes])
+		big_s_map = sbox.get_map()
+		# # en_edges = envelope.get_map()
+		# all_params = s_map.keys()
+		# all_param_len = len(all_params)
+		# param_names_sorted = sorted(all_params)
+		# param_index_dict = {}
+		# i = 0
+		# for par in param_names_sorted:
+		# 	param_index_dict.update({par:i})
+		# 	i +=1
+
+		ParValue = collections.namedtuple('ParValue', ['id', 'val'])
+		s_map = current_sbox.get_map()
+		# en_edges = envelope.get_map()
+		all_params = s_map.keys()
+		all_param_len = len(all_params)
+		param_names_sorted = sorted(all_params)
+		param_index_dict = {}
+		i = 0
+		for par in param_names_sorted:
+			param_index_dict.update({par:i})
+			i +=1
+
+		def pointtobox(p):
+			bmap = {}
+			ij = 0
+			for it in sorted(param_names_sorted):
+				bmap.update({it:PyInterval(p[ij]*(1-MIN_EPS/2), p[ij]*(1+MIN_EPS/2))})
+				ij += 1
+			# print(p, bmap)
+			return Box(bmap)
+
+		# c23 = [b for b in rnd.sample(true_boxes, min(len(true_boxes), 10**all_param_len))]
+		# c3 = [b for b in rnd.sample(true_boxes, min(len(true_boxes), 7**all_param_len))]
+		# c3 = true_boxes #
+		# en_edges = envelope.get_map()
+		
+		# envelope = bfact.get_cover(true_boxes)
+		# en_edges = envelope.get_map()
+		# par_low = []
+		# par_up = []
+		# for it in sorted(param_names_sorted):
+		# 	par_low.append(en_edges[it].leftBound())
+		# 	par_up.append(en_edges[it].rightBound())
+
+		# engine = qmc.LatinHypercube(all_param_len)#,)
+		# lhs_sample1 = engine.random(n=max(100,2**all_param_len))
+		# lhs_sample = qmc.scale(lhs_sample1,  par_low, par_up)
+
+		
+		# lhs_sample_ps = []
+		# for ls in lhs_sample:
+		# 	lhs_sample_ps.append(pointtobox(ls))
+		# # extra_boxes = bfact.remove(sbox, envelope)
+		# if extra and DEBUG:
+		# 	print('getNextBoxesFromGradient', str(sbox), str(envelope)) #, [str(b) for b in extra_boxes])
+
+
+		stm1 = time.time()
+
+		hull = getHull(true_boxes)
+		select_c3 = getHullBoundary(true_boxes, hull)
+
+		# c3 += select_c3
+		
+		#c23 = [b for b in rnd.sample(true_boxes, min(len(true_boxes), 10**all_param_len))]
+		c31 = [b for b in true_boxes] #[b for b in rnd.sample(true_boxes, min(len(true_boxes), 10**all_param_len))]
+		# c3 = select_c3
+		# # cb = []
+		# for b in c31:
+		# 	if b in c3:
+		# 		continue
+		# 	if bfact.intersectsAny(b, lhs_sample_ps) : #or envelope.atBoundary(b):
+		# 		c3.append(b)
+		# 	else:
+		# 		if np.random.uniform(0, 1, 1)[0] < 0.2:
+		# 			c3.append(b)
+		# if len(c3) < 2:
+		# 	c3 = c31
+
+		c32 = c31 #+ select_c3
+		# cb = []
+		# for b in c31:
+		# 	if b in c32:
+		# 		continue
+		# 	# if bfact.intersectsAny(b, lhs_sample_ps): 
+		# 	# 	c32.append(b)
+		# 	# elif envelope.atBoundary(b):
+		# 	# 	c3.append(b)
+		# 		# c3.append(b)
+		# 	else:
+		# 		if np.random.uniform(0, 1, 1)[0] < 0.3:
+		# 			c32.append(b)
+		c3 = select_c3 #c32
+		# changed on 26/04/2022
+
+		MAXC = min(all_param_len*MAX_clusters, 5**all_param_len, len(c32)) ##MAX(MAX_clusters, len(c32))
+		#MAXC = len(select_c3) ##MAX(MAX_clusters, len(c32))
+		X_1 = np.array([boxtopoint(b) for b in c32])
+		chosen_k = MAXC
+		
+		pre_savg = -1
+		pre_score = -1
+		for n_clusters in range(2*all_param_len, MAXC):
+		# Initialize the clusterer with n_clusters value and a random generator
+		# seed of 10 for reproducibility.
+			#clusterer = KMeans(n_clusters=n_clusters, random_state=50)
+			clusterer = KMedoids(n_clusters=n_clusters, random_state=gen) #, init='heuristic'
+			cluster_labels = clusterer.fit_predict(X_1)
+
+			# The silhouette_score gives the average value for all the samples.
+			# This gives a perspective into the density and separation of the formed
+			# clusters
+			if int(gen/2)%3 == 0:
+				silhouette_avg = (pre_savg - clusterer.inertia_) # elbow method
+				if silhouette_avg < EPS:
+					chosen_k = n_clusters
+					break				
+				pre_savg =  clusterer.inertia_
+			else:
+				# silhouette_avg = -1*davies_bouldin_score(X_1, cluster_labels)
+				silhouette_avg = silhouette_score(X_1, cluster_labels)
+				#print("For n_clusters =", n_clusters, "The average silhouette_score is :", silhouette_avg)
+				if pre_score < silhouette_avg:
+					pre_score = silhouette_avg
+					chosen_k = n_clusters
+			
+
+		clusterer =  KMedoids(n_clusters=chosen_k,  random_state=gen).fit(X_1) #init='heuristic',
+		centroids = clusterer.cluster_centers_
+		#centroids_1 = centroids
+		# clusterer = KMeans(n_clusters=chosen_k, random_state=gen).fit(X_1)
+		# centroids = clusterer.cluster_centers_
+		# center_indices, centroids_1 = find_k_closest(centroids, X_1)
+		center_indices, centroids_1 = find_k_closest(centroids, X_1)
+		c33 = [] 
+		# c33 = select_c3
+		# X = list(X_1)
+		for cc in center_indices: #centroids_1:
+			b = c32[cc]
+			c33.append(b) #pointtobox(cc))
+		# c33 = select_c3
+		# # X = list(X_1)
+		# for cc in centroids_1:
+		# 	# b = c32[X.index()]
+		# 	c33.append(pointtobox(cc))
+		# changed on 11/05/2022 	
+		#c3 += c33
+
+
+		if len(c33) < all_param_len:
+			c33 = c31
+		
+		st2 = time.time()
+		# c3 = c33
+		print('npg -- ', time.time()-stm1, 's')
+		# end changes on 26/04/2022
+
+		#envelope = bfact.get_cover(c3)
+		#rate = 50
+		# select some boundary points ??
+		#extra_points = sorted(rnd.sample(range(0, len(c3)), min(len(c3), rate)))
+		#true_points = [boxtopoint(tb) for tb in true_boxes]
+		
+	
+
+		rate = 0
+		extra_points = []
+		extra_boxes = []
+		for i in range(len(c3)):
+			tb = c3[i]
+			extra_boxes.append(tb)
+			extra_points.append(i)
+			rate += 1 
+			# if envelope.atBoundary(tb):
+			# 	extra_boxes.append(tb)
+			# 	extra_points.append(i)
+			# 	rate += 1 
+			# else:
+			# 	if np.random.uniform(0, 1, 1)[0] < 0.5:
+			# 		extra_boxes.append(tb)
+			# 		extra_points.append(i)
+			# 		rate += 1 
+
+		# en_ex_edges = {}
+		# for it in param_names_sorted:
+		#   en_ex_edges.update({it:PyInterval(en_edges[it].leftBound()*10/12.0, en_edges[it].rightBound()*12.0/10.0)})
+		# extra_box = Box(en_ex_edges)
+
+		jk = 0
+		new_boxes_to_check_after_regres = []
+		selected = []
+		npg_cc = []
+		for cc1 in connectedComponents:
+			jk += 1
+			cc = sorted(cc1)
+			pi = int((gen/2)%len(cc)) #0 #cc.index(pn)
+			pn = cc[pi]
+			#for pn in cc:
+			# 				
+			# pn = random.choice(cc)
+			# pi = cc.index(pn)
+			# # print(cc1, pn)
+			#pi = cc.index(pn)
+			out_param = param_names_sorted.index(pn) #rnd.sample(range(param_len), 1)[0]
+			print('npg -- ',jk, 'cc', cc, out_param, 'index', pi, pn, len(c33))
+			params = cc
+			param_len = len(params)
+
+
+			other_out_param = []
+			for i in range(param_len):
+				key = params[i]
+				# print(i, param_index_dict[key],out_param)
+				if (param_index_dict[key] == out_param):
+					continue
+				else:
+					other_out_param.append(i)
+			# for i in range(param_len):
+			# 	if i == pi:
+			# 		continue
+			# 	else:
+			print(params, other_out_param)
+			subsets_2 = [(params[pi], params[i]) for i in other_out_param] #range(1, param_len)]
+			print('subsets_2', subsets_2)
+
+			X_ = {}
+			Y_ = {}
+			j = 0
+			for b in c33:
+				b_map = b.get_map()
+				for it in params:
+					i = param_index_dict[it]
+					if it == params[out_param]:
+						x = (b_map[it].leftBound() + b_map[it].rightBound())/2
+						X_.update({j:x})
+					else:
+						y = (b_map[it].leftBound() + b_map[it].rightBound())/2
+						Y_.update({(j,i):y})
+				j+= 1
+			# print('X_', X_)
+			# print('Y_', Y_)
+			X_all = {}
+			Y_all = {}
+			j = 0
+			for b in c3:
+				b_map = b.get_map()
+				for it in params:
+					i = param_index_dict[it]
+					if it == params[out_param]:
+						x = (b_map[it].leftBound() + b_map[it].rightBound())/2
+						X_all.update({j:x})
+					else:
+						y = (b_map[it].leftBound() + b_map[it].rightBound())/2
+						Y_all.update({(j,i):y})
+				j+= 1
+
+			xv = list(X_.values())
+			xvn, ijk = np.unique(xv, return_index = True)
+			k_degree = 3 #min(3, len(xvn))
+			print('sub', k_degree, len(xvn))
+			if len(xvn) < all_param_len:
+				X_ = {}
+				Y_ = {}
+				j = 0
+				for b in c33+select_c3:
+					b_map = b.get_map()
+					for it in params:
+						i = param_index_dict[it]
+						if it == params[out_param]:
+							x = (b_map[it].leftBound() + b_map[it].rightBound())/2
+							X_.update({j:x})
+						else:
+							y = (b_map[it].leftBound() + b_map[it].rightBound())/2
+							Y_.update({(j,i):y})
+					j+= 1
+				
+				xv = list(X_.values())
+				xvn, ijk = np.unique(xv, return_index = True)
+				k_degree = 3 #min(3, len(xvn))
+
+			xv_all = list(X_all.values())
+			keys = []
+			YV_grad = {}
+			YV_ = {}
+			for sub in subsets_2:
+				s1, s2 = sub[0], sub[1]
+				j1, j2 = param_index_dict[s1], param_index_dict[s2]
+				yv = [Y_[(j,j2)] for j in X_.keys()]
+				# print('np.gradient -- ', s1, len(xv), s2, len(yv), xv, yv) 
+				
+				# print('np.gradient -- ', s1, len(xv), s2, len(yv), xvn, len(ijk), ijk) 
+				yvn = [yv[ijj] for ijj in ijk]
+				# print('np.gradient -- ', s1, len(xv), s2, len(yv), xvn, yvn)
+				if len(xvn) >= 4:
+					tck = interpolate.splrep(xvn, yvn, s = 0, k = k_degree)
+				else:
+					tck = -1
+				# grad = interpolate.splev(xv)
+				grad = np.gradient(xv, yv) #, axis = 0)
+				# print('------------', len(grad), grad)
+				YV_grad.update({j2:(grad, yv, tck)})
+				YV_.update({j2:[Y_all[(j,j2)] for j in X_all.keys()]})
+				keys.append(j2)
+
+			grad_interpolate = {}
+			for j in keys:
+				grad_all = YV_grad[j][0]
+				x_all = xv
+				xvn, ijk = np.unique(x_all, return_index = True)
+				# print('np.gradient -- ', s1, len(xv), s2, len(yv), xvn, ijk) 
+				yvn = [grad_all[ijj] for ijj in ijk]
+				f = interpolate.interp1d(xvn, yvn,  fill_value="extrapolate")
+				# f = interpolate.interp1d(xvn, yvn, kind = 'cubic', fill_value="extrapolate")
+				grad_interpolate.update({j:f})
+
+			# print(YV_grad)
+			def del_z(u, i):
+				#grad = [YV_grad[j][0][i] for j in YV_grad.keys()]
+				unorm = np.linalg.norm(list(u))
+				#grad = [YV_grad[j][0][i] for j in YV_grad.keys()]
+				if du > 20*MIN_EPS and len(xvn) >= 4:
+					# changed on 10/05/2022
+					grad = [interpolate.splev(xv_all[i], YV_grad[j][2], der=1) for j in keys]
+				else:
+					# # changed on 26/04/2022
+					grad = [grad_interpolate[j](xv_all[i]) for j in keys]
+				dz = np.dot(grad, u) #/unorm # divided by norm of u??
+				# if DEBUG:
+				# dxz = xv[i]+dz 
+				dxz = xv_all[i]+dz #[0]
+				# print('del_z', 'grad', grad, 'u', u, 'dz', dz, 'index', i, 'x', xv_all[i], dxz)
+				return dxz, dz
+
+			
+			# ldu = 0.05 if (gen < 10000 and len(true_boxes) < 1000) else 0.05*(1+gen/100000.0)
+			# udu = 0.2 if (gen < 10000 and len(true_boxes) < 1000) else 0.2*(1+gen/100000.0)
+			# du = np.random.uniform(ldu, udu, 1)[0] #0.05
+
+			# ldu = MIN_EPS * 2
+			# udu = MIN_EPS * 10
+			# du = np.random.uniform(ldu, udu, 1)[0] #0.05
+			ulist = [np.linspace(-du, du, samples_per_dim) for j in YV_grad.keys()] #YV_grad.keys()]
+			# print('ulist', ulist)
+			# if DEBUG:
+			# print('np.gradient', len(YV_grad), YV_grad.keys(), 'c3', len(c3), 'extra_points', rate, len(extra_points), extra_boxes)
+
+			# x_sel = [xv[i] for i in extra_points]
+			# y_sel = [yv[i] for i in extra_points]
+			# z_sel = [zv[i] for i in extra_points]
+			x_edges = []
+			for element in itertools.product(*ulist):
+				if all([x == 0 for x in element]):
+					continue
+				# print('eelement', element) #, YV_grad.keys(), [YV_grad[j][1] for j in YV_grad.keys()])
+				inputs_extended = {}
+				k = 0
+				for j in keys: #YV_grad.keys():
+					u = element[k]
+					# yv = YV_grad[j][1]
+					# # changed on 26/04/2022
+					yv = YV_[j]
+					yv1 = []
+					for i in extra_points:
+						yv1.append(yv[i] + u)
+						# changed on 22/04/2022
+						# yv1.append(yv[i] *(1 + u))
+						
+						#yv1.append(extra_boxes[i] *(1 + u))
+					inputs_extended.update({j:yv1})
+					k += 1
+				#[[(YV_grad[j][1][i] + element[j]) for i in extra_points] for j in YV_grad.keys()]
+				output_extended_dz = [del_z(element, i)[1] for i in extra_points]
+				output_extended = [del_z(element, i)[0] for i in extra_points]
+				#print('elem' ,element, output_extended[0], params[keys[0]], inputs_extended[keys[0]][0])
+				for i in range(len(extra_points)):
+					row = []
+					# changed on 11/05/2022 -- to limit the distant points in approximation
+					if isValid(output_extended[i]): # and  abs(output_extended_dz[i]) < 50*du: #not math.isnan(output_extended[i]):
+						# row.append(output_extended[i])
+						row.append(ParValue(id = params[pi], val = output_extended[i]))
+						for j in keys: #range(len(keys)): #YV_grad.keys())):
+							# row.append(inputs_extended[j][i])
+							if j == pi:
+								continue
+							row.append(ParValue(id = params[j], val = inputs_extended[j][i]))
+						x_edges.append(row)
+
+						#print('--', row, out_param, pi)
+
+			if DEBUG:
+				print('x_edges', x_edges)
+			npg_cc.append(x_edges)
+
+		# print(len(npg_cc), len(npg_cc[0]))
+		#if len(connectedComponents)> 1:
+		npg_pi = []
+		for elem in itertools.product(*npg_cc):
+			# print(elem)
+			elem1 = []
+			for item in elem:
+				elem1 += item
+			npg_pi.append(elem1)
+			# print(elem1)
+		# else:
+		# 	npg_pi = x_edges
+
+		for x11 in npg_pi:
+			# print(x11)
+			x1 = [0 for k in range(all_param_len)]
+			for pk in x11:
+				# print('pk', pk)
+				pid, pval = param_index_dict[pk.id], pk.val
+				x1[pid] = pval
+			# print('x11', x11, x1)
+			sys.stdout.flush()
+			flag = True
+			x_map = {}
+			for i in range(len(param_names_sorted)):
+				pn = param_names_sorted[i]
+				if x1[i] < 0 or not (s_map[pn].leftBound() <= x1[i] <= s_map[pn].rightBound()):
+					#print(pn, x1[i])
+					flag = False
+					break
+				# ll = max(x1[i]*10.0/12, s_map[pn].leftBound())
+				# ul = min(x1[i]*12.0/10, s_map[pn].rightBound())
+				ll = max(x1[i] - min(du, MIN_EPS_2), big_s_map[pn].leftBound())
+				ul = min(x1[i] + min(du, MIN_EPS_2), big_s_map[pn].rightBound())
+				# ll = max(x1[i] - 2*du, s_map[pn].leftBound())
+				# ul = min(x1[i] + 2*du, s_map[pn].rightBound())
+				# if ll > ul:
+				# 	ll = s_map[pn].rightBound()*11/12.0
+				# 	ul = s_map[pn].rightBound()
+				# print(i, pn, ll, ul)
+				x_map.update({pn:PyInterval(ll, ul)})
+				#x_map.update({pn:PyInterval(x1[i])})
+			#print('detected', x1, x_map)
+			if flag:
+				b2 = Box(x_map)
+				# print('b2', str(b2))
+				# if extra:
+				#   print('b2', str(b2))
+				#   for bbox in extra_boxes:
+				#       if bbox.contains(b2):
+				#           #delta_to_use = b2.max_side_width()*N_GRIDS
+				#           new_boxes_to_check_after_regres.append(b2)#, delta_to_use))
+				# else:
+					#delta_to_use = b2.max_side_width()*N_GRIDS
+				selected.append(b2)
+		
+		for b2 in selected:
+			# added on 25/05/2022
+			if current_sbox.contains(b2) and not pre_envelope.contains(b2):
+				rt = kdt_true.search(kdi.KDInterval(b2)) #.addDelta(MIN_EPS)))
+				if not rt:
+					new_boxes_to_check_after_regres.append(b2)
+				
+			elif current_sbox.contains(b2):
+				# new_boxes_to_check_after_regres.append(b2)
+				rf = kdt_false.search(kdi.KDInterval(b2))
+				rt = kdt_true.search(kdi.KDInterval(b2)) #.addDelta(MIN_EPS)))
+
+				# updated on 21/05/2022
+				# For NPG, only search outside the envelope
+
+				if not isInHull(b2, hull) or not envelope.contains(b2) :# and extended_box.contains(b2) : #or len(selected) < 20:
+					if not (rt or rf):
+						new_boxes_to_check_after_regres.append(b2)#, delta_to_use))
+					# elif rf and not rt and (np.random.uniform(0, 1, 1)[0] < 0.1):
+					# 	new_boxes_to_check_after_regres.append(b2)#, delta_to_use))
+
+				# elif not isInHull(b2, hull) and envelope.contains(b2):
+				# 	#rt = kdt_true.search(kdi.KDInterval(b2.addDelta(MIN_EPS*5)))
+				# 	if not (rt or rf) or np.random.uniform(0, 1, 1)[0] < 0.1 or len(true_boxes) < 50 :
+				# 		new_boxes_to_check_after_regres.append(b2)
+				# else:
+				# 	#rt = kdt_true.search(kdi.KDInterval(b2.addDelta(MIN_EPS*10)))
+				# 	# if not rt:
+				# 	# npg.append(bb)
+				# 	if not (rt or rf)  or np.random.uniform(0, 1, 1)[0] < 0.2 or len(true_boxes) < 20 :
+				# 		new_boxes_to_check_after_regres.append(b2)
+
+
+
+			# kdt_npg_sat = kdivt.IntervalTree()
+			# for bb in new_boxes_to_check_after_regres:
+			# 	b_ex = kdi.KDInterval(bb) #.addDelta(b.min_side_width() * 0.001)
+			# 	kdt_npg_sat = kdt_npg_sat.insert(b_ex)
+		print('gen', gen, 'npg', len(new_boxes_to_check_after_regres), len(extra_points), 'time taken -- ', time.time() - st2, 's') 		
+		return new_boxes_to_check_after_regres, c33
+
+	# def checkAllProperties(inputs):
+	# 	model, b, all_props, klen, j = inputs
+	# 	r, instance = evaluate([model, all_props, b, klen, j])
+	# 	return r
+		
+	def getBoxDelta(b):
+		#return b.min_side_width()*N_GRIDS 
+		return max(b.min_side_width()*N_GRIDS, MIN_DELTA)
+	
+	def ifBoxEPS(b, tp):
+		return (b.max_side_width() < max(EPS*(E_GRIDS**tp), MIN_EPS))
+	
+	def extendEnvelope(covered_region, sbox, du =  10*MIN_EPS):
+		sbox_edges = sbox.get_map()
+		en_edges = covered_region.get_map()
+		en_ex_edges = {}
+		for it in en_edges.keys():
+			# it_lb = sbox_edges[it].leftBound() #max(en_edges[it].leftBound()*10/25.0, sbox_edges[it].leftBound())
+			# it_ub = sbox_edges[it].rightBound() #min(en_edges[it].rightBound()*25/10.0, sbox_edges[it].rightBound())	
+			it_lb = max(en_edges[it].leftBound() - du, sbox_edges[it].leftBound())
+			it_ub = min(en_edges[it].rightBound() + du, sbox_edges[it].rightBound())
+			en_ex_edges.update({it:PyInterval(it_lb, it_ub)})
+		extended_box = Box(en_ex_edges)
+
+		return extended_box
+	# def getGPRTrainingPoint(b):
+	# 	smap = b.get_map()
+	# 	blist = [] #[dt]
+	# 	for key in sorted(smap.keys()):
+	# 		blist.append((smap[key].leftBound()+smap[key].rightBound())/2)
+	# 		#blist.append(smap[key].rightBound())
+	# 		#blist.append(smap[key].leftBound())
+	# 	return blist
+		
+	def getBoxes(model, params, all_props, sbox_all, sboxes, klen, True_boxes = [], act_pt = None): 
+		stime = time.time()
+		#EPS = 0.01 #max(sbox.min_side_width() * 0.1, d)
+		#mgr = multiprocessing.Manager()
+		GP_X = []
+		GP_y = []
+		# pre_GP_x = len(GP_X)
+		par_names = sorted((sbox_all.get_map()).keys())
+
+		mcpu = multiprocessing.cpu_count()
+		np1 = int(mcpu)-2 if mcpu > 30 else int(mcpu)-2
+		# vol_covered = 0.0
+		ratio = 0.0
+		ratio2 = 0.0
+		ratio1 = 0.0
+		
+		sat_box = []
+		unsat_box = []
+		undet_box = []
+		# next_appr_sat_box = []
+		# decided_boxes = []
+		checked_boxes = []
+
+		GPC = True
+		# if IVT:
+		kdt_false = kdivt.IntervalTree()
+		kdt_true = kdivt.IntervalTree()
+
+
+		kdt_queue = kdivt.IntervalTree()
+		print('kdtree', kdt_queue)
+
+		initPriority = 10
+		stack = HeapQ() 
+
+		total_volume = sbox_all.volume()
+		# total_volume = 0.0
+		env_volume = 0.0
+		# if rank == 0:
+		if RESUME:
+			(sat_bs, qs, par_names)  = readFromFile()
+			sat_box += sat_bs
+			True_boxes += sat_bs
+			checked_boxes += sat_bs
+			for b in sat_bs:
+				kdt_true = kdt_true.insert(kdi.KDInterval(b.addDelta(TB_N)))
+			
+			current_sbox = extendEnvelope(bfact.get_cover(True_boxes, check = False), sbox_all, 20*MIN_EPS)	
+			cq =0
+			if len(qs)> 0:
+				for qb in qs:
+					#stack.push(qb)
+					# bi, sb, d, datatp, bttyp = qb.getInfo()
+					stack.push(qb)
+
+					#kdt_queue = kdt_queue.insert(kdi.KDInterval(b.addDelta(0)))
+					kdt_queue = kdt_queue.insert(kdi.KDInterval(b.addDelta(-MIN_EPS)))
+					cq += 1
+			else:
+				next_boxes_to_check, c33 =  getGPRBoxes(sbox_all, pre_envelope, current_sbox, kdt_true, kdt_false, True_boxes, par_names, 0, extra = False)
+				for bb in next_boxes_to_check:
+					delta_to_use = getBoxDelta(bb)
+					stack.push(BoxInfo(initPriority, bb, delta_to_use, 0, BoxTyp.APPROX))	
+					
+					#kdt_queue = kdt_queue.insert(kdi.KDInterval(b.addDelta(0)))
+					kdt_queue = kdt_queue.insert(kdi.KDInterval(b.addDelta(-MIN_EPS)))
+					cq += 1
+				# total_volume += sb.volume()
+			# prop = all_props[datatp-1]
+			# delta_to_use = delta_to_use1 #*(N_GRIDS**(datatp))
+			print('Resuming from last checkpoint')
+			print('getBoxes', cq, total_volume)
+
+		else:
+			datatp = 0
+			starting_box = []
+			for i in range(len(sboxes)): 
+				sbox, delta_to_use= sboxes[i]
+				starting_box.append(sbox)
+				# print('getBoxes',  len(sboxes), type(sbox))
+				# total_volume += sbox.volume()
+				# delta_to_use = #DELTA*(0.1**(datatp))
+				stack.push(BoxInfo(initPriority, sbox, delta_to_use, datatp, BoxTyp.EXT))
+				kdt_queue = kdt_queue.insert(kdi.KDInterval(sbox.addDelta(0)))
+				#kdt_queue = kdt_queue.insert(kdi.KDInterval(sbox.addDelta(-MIN_EPS)))
+
+			covered_region = bfact.get_cover(starting_box, check = False)
+
+			sat_box += [] #default_box]
+			print('getBoxes', len(sboxes), total_volume)#, 'nodes', nParts)
+
+			current_sbox = bfact.get_cover(starting_box, check = False)	
+			
+		# print('------------------- Run for row ', datatp, '-------------------------')
+		# print('----- data ----', prop)
+		print('Starting with --', stack.size(), len(sat_box), 'num props', len(all_props), 'k_len', klen)
+		pre_envelope = current_sbox #True_boxes[0] #sbox_all
+
+		c1 = 0
+		c2 = 0
+		gen = 0
+
+		# for b1 in True_boxes:
+		# 	#satb.addDelta(satb.min_side_width() * 0.01)
+		# 	b_ex = kdi.KDInterval(b1.addDelta(b1.min_side_width() * 0.01))
+		# 	#print('False -- adding to kdt', str(b_ex))
+		# 	kdt_true = kdt_true.insert(b_ex)
+		# 	c2 += 1
+		# else:
+		npg, centres = [] , []
+		approx_box_added = 0
+		c2 = len(True_boxes)
+		# kdt_npg_sat = kdivt.IntervalTree()
+		i = 0   
+		pre_count = 0
+		pre_gen = 0
+		while(not stack.isEmpty()):
+			min_pri = initPriority
+			max_pri = -1
+			# while(len(List) > 0):
+			#b = stack.pop()
+			# np = 1 #
+			# new_boxes = []
+			count = 0
+			count2 = 0
+			count1 = 0
+			min_delta = DELTA
+
+			num_proc = min(np1, stack.size())
+			POOL = True if num_proc > 1 else False
+			#num_proc = 1 # min(np1, stack.size())
+			# POOL = False #True if num_proc > 1 else False
+			allboxes = []   
+			# for j in range(num_proc):
+			fraction = num_proc
+			if (i%5 == 0 and c2 > 100):
+				fraction = int(num_proc/5.0)  
+			elif (c2 > 100):
+				fraction = int(5*num_proc/6.0)
+			j = 0
+			# if len(True_boxes) < 10 :
+			# 	hull = None
+			# elif i%10 == 0:
+			# 	hull = getHull(True_boxes) 
+			djk = 0
+			while j < fraction and not stack.isEmpty():
+				bi = stack.pop()
+				pr, bx, dt, tp, bttyp = bi.getInfo()
+				if i%3 == 0:
+					# pr, bx, dt, tp = bi.getInfo()
+					# added on 25/03/2022 -- not include closest points to true regions
+					# added on 12/04/2022 -- not includong closest points to true boxes
+					bx1 = kdi.KDInterval(bx) #.addDelta(MIN_EPS)) #bx.max_side_width()*1.5))
+					rt = True if (bttyp == BoxTyp.EXT and bx.min_side_width() > 2*MIN_EPS_2) else not kdt_true.search(bx1)   #kdt_true.search(bx1)
+					# rf = kdt_false.search(kdi.KDInterval(bx))
+					#rr = np.random.uniform(0, 1, 1)[0] < 0.1
+					if rt: # or rr:
+						allboxes.append(bi)
+						j +=1
+
+						if max_pri < pr:
+							max_pri = pr
+						if min_pri > pr:
+							min_pri = pr
+					else:
+						djk += 1
+				else:
+					allboxes.append(bi)
+					if max_pri < pr:
+						max_pri = pr
+					if min_pri > pr:
+						min_pri = pr
+					j +=1
+
+			while j < num_proc and not stack.isEmpty():
+				bi1 = stack.randomPop()
+				pr, bx, dt, tp, bttyp = bi1.getInfo()
+				# prioritise this box and its partitions
+				bi = BoxInfo(min_pri, bx, dt, tp, bttyp)
+				if i%3 == 0:
+					# pr, bx, dt, tp = bi.getInfo()
+					# added on 25/03/2022 -- not include closest points to true regions
+					# added on 12/04/2022 -- not includong closest points to true boxes
+					bx1 = kdi.KDInterval(bx) #.addDelta(MIN_EPS)) #bx.max_side_width()*1.5))
+					rt = True if (bttyp == BoxTyp.EXT and bx.min_side_width() > MIN_EPS_2) else not kdt_true.search(bx1) # and not isInHull(bx, hull)  #kdt_true.search(bx1)
+					# rf = kdt_false.search(kdi.KDInterval(bx))
+					#rr = np.random.uniform(0, 1, 1)[0] < 0.1
+					if rt : #or rr:
+						allboxes.append(bi)
+						j +=1
+						if max_pri < pr:
+							max_pri = pr
+						if min_pri > pr:
+							min_pri = pr
+					else:
+						djk += 1
+				else:
+					allboxes.append(bi)
+					if max_pri < pr:
+						max_pri = pr
+					if min_pri > pr:
+						min_pri = pr
+					j +=1
+			# if no boxes selected in this round then add the
+			# if len(allboxes) == 0:
+			# 	while j < num_proc:
+			# 		bi = stack.pop()
+			# 		pr, bx, dt, tp = bi.getInfo()
+			# 		if i%3 == 0:
+			# 			# pr, bx, dt, tp = bi.getInfo()
+			# 			# added on 25/03/2022 -- not include closest points to true regions
+			# 			# added on 12/04/2022 -- not includong closest points to true boxes
+			# 			bx1 = kdi.KDInterval(bx.addDelta(MIN_EPS*2)) #bx.max_side_width()))
+			# 			rt = kdt_true.search(bx1) #kdt_true.search(bx1)
+			# 			# rf = kdt_false.search(kdi.KDInterval(bx))
+			# 			if not rt: # and not rf:
+			# 				allboxes.append(bi)
+			# 				j +=1
+			# 			else:
+			# 				print('discarding box', str(bx))
+			# 		else:
+			# 			allboxes.append(bi)
+			# 			if max_pri < pr:
+			# 				max_pri = pr
+			# 			if min_pri > pr:
+			# 				min_pri = pr
+			# 		j +=1
+			# print(allboxes)
+
+			print('discarded box', djk, len(allboxes))
+			num_proc = len(allboxes)  #min(num_proc, )
+			sk = 'Using multiprocessing : {0}, prces {1},  Boxes left -- {2}, time -- {3:2f} hrs-- pri: {4}, {5} '.format(POOL, num_proc, stack.size(), ((time.time()-stime)/3600), max_pri, min_pri)
+
+			if POOL:
+				pool = ProcessingPool(num_proc)
+				inputs = [[model, all_props, allboxes[j], klen, j] for j in range(num_proc)]
+				#print(inputs)
+				results = pool.map(evaluate, inputs)
+			else:
+				results = [evaluate([model, all_props, allboxes[j], klen, 0]) for j in range(num_proc)]
+
+			if POOL:
+				pool.close()
+				pool.join()
+				pool.clear()
+
+			# print('results', results, num_proc)
+			# fflag = False
+			for j in range(num_proc):       
+				bi = allboxes[j]    
+				pr, b, dt, tp, bttyp = bi.getInfo()
+				# delta_to_use = delta_to_use1*(EPS**tp)
+				be = b.get_map()
+				# fe = False
+				# for it in be.keys():
+				#   if be[it].leftBound() < 0:
+				#       print('XXXXXX negative box edge', it, be[it], b)
+				#       # fe = True
+				#       break
+				if min_delta > dt:
+					min_delta = dt
+				
+				# covered_1 = bfact.get_cover([covered_region]+[b])
+				# covered_region = covered_1
+				
+				sys.stdout.flush()
+				(r, instance) = results[j]      
+				# print(j, r)
+				
+				if DEBUG:
+					print('Box min: '+ str(b.min_side_width())+ ' max :' + str(b.max_side_width()), 'delta: ', dt, delta_to_use)
+					print('Result: ', r, instance)
+
+				if(r == FALSE):
+					'''if given range subset of b then return false '''
+					#return (False, b)
+					unsat_box.append(b)
+					# vol_covered += b.volume()
+					if DEBUG:
+						print('@@@@ False box : --decided', tp, '<', len(all_props), str(b))
+					count2 += 1
+					#break
+					# decided_boxes.append(b)
+
+					# add to tree
+					# b_ex = kdi.KDInterval(b) #.addDelta(b.min_side_width() * 0.001)
+					#print('False -- adding to kdt', str(b_ex))
+					kdt_false = kdt_false.insert(kdi.KDInterval(b))#.addDelta(MIN_EPS)))
+					# if i == 0 or stack.empty():
+					# 	fflag = True
+					# 	break
+
+				elif(r == TRUE):    
+					''' if given range subset of b then return true '''
+					if tp+1 < len(all_props):
+						if DEBUG:
+							print('## 1-sat box : ', tp, '<', len(all_props), str(b))	
+						''' check for next property '''
+						dt1 = getBoxDelta(b) #max(b.max_side_width()*N_GRIDS, MIN_DELTA) #max(b.minDimension()*EPS, MIN_DELTA)
+						# if tp < 2:
+						stack.push(BoxInfo(pr-1, b, dt1, tp+1, bttyp)) # adding to stack
+						# else:
+						# 	stack.push(BoxInfo(pr-1, b, dt1, tp+1, BoxTyp.PART)) # adding to stack
+						# new_boxes.append((b, dt1))
+						if DEBUG:
+							print('---- check next property {0} with delta {1}'.format(tp+1, dt1))
+						count += 1
+						
+					else:
+						''' all properties are covered --- stop '''
+						sat_box.append(b)
+						# vol_covered += b.volume()
+						print('@@@@ True box -- decided : ', tp, '<', len(all_props), str(b))              
+						count2 += 1
+
+						c2 += 1
+						True_boxes.append(b)
+						# decided_boxes.append(b)     
+						checked_boxes.append(b)
+						# if IVT:
+						# b_ex = kdi.KDInterval(b) #.addDelta(b.min_side_width() * 0.01))
+						#print('False -- adding to kdt', str(b_ex))
+						kdt_true = kdt_true.insert(kdi.KDInterval(b.addDelta(TB_N)))
+				else: 
+					''' UNDET '''
+					# dts = max(delta_to_use, MIN_DELTA)
+					eps = ifBoxEPS(b, tp) #MIN_EPS #max(EPS*(N_GRIDS**(tp+1)), MIN_EPS)
+					if DEBUG:
+						print('## undet box : ', tp, ' ', str(b), ' Box min: '+ str(b.min_side_width())+ ' max :' + str(b.max_side_width()), 'delta: ', dt, 'delta to use', delta_to_use, 'min delta', MIN_DELTA, 'eps', eps, MIN_EPS)                   
+					if eps: #(b.max_side_width() < eps):
+						if DEBUG:
+							print('## 2-sat box : ', tp, '<', len(all_props), str(b))
+						if tp+1 < len(all_props):
+							''' check for next property '''
+							dt1 = getBoxDelta(b) #max(b.max_side_width()*N_GRIDS, MIN_DELTA)
+							# dt1 = max(b.minDimension()*EPS, MIN_DELTA)
+							#dt1 = max(b.minDimension()*EPS, dt*EPS)
+							#if tp < DATA_tp-1:
+							stack.push(BoxInfo(pr-1, b, dt1, tp+1, bttyp)) # adding to stack
+							# else:
+							# 	stack.push(BoxInfo(pr-1, b, dt1, tp+1, BoxTyp.PART)) # adding to stack
+
+							#stack.push(BoxInfo(pr-1, b, dt1, tp+1, BoxTyp.PART)) # adding to stack
+							# new_boxes.append((b, dt1))
+							count += 1
+							if DEBUG:
+								print('---- check next property {0} with delta {1}'.format(tp+1, dt1))
+							
+						else:
+							''' all properties are covered --- stop '''
+							# sys.stdout.flush()
+							inst1 = instance.p1
+							inst2 = instance.p2
+							
+							satb = inst1.getSATBox()
+							# negsatb = inst2.getSATBox()
+							# point = inst1.getSATPoint()
+							# negpoint = inst2.getSATPoint()
+
+							sat_box.append(satb)
+							# vol_covered += b.volume()     
+							count2 += 1
+
+							# extra_boxes = bfact.remove(b, satb)
+							# for b2 in extra_boxes:
+							#   vol_covered += b2.volume()  
+							print('@@@@ < EPS {0:0.4f} SAT box -- decided'.format(max(EPS*(E_GRIDS**tp), MIN_EPS)), tp, 'boxtype', bttyp)#, 'removed {0} smaller boxes'.format(len(extra_boxes)))
+
+							c2 += 1
+							True_boxes.append(satb)
+							# decided_boxes.append(satb)     
+							checked_boxes.append(b)
+							# if IVT:
+							# b_ex = kdi.KDInterval(satb)#.addDelta(satb.min_side_width() * 0.01))
+							#print('False -- adding to kdt', str(b_ex))
+							kdt_true = kdt_true.insert(kdi.KDInterval(satb.addDelta(TB_N)))
+					else:
+						# delta1 = dt #min(sbox.minDimension() * 0.1, MIN_DELTA)
+						boxes = heuristicPartition(b, instance, eps) #MIN_DELTA) #MIN_EPS) # dt*EPS)
+						# print('--- box partition', b, len(boxes), MIN_DELTA)
+						# print('getBoxes', np.array(GP_X).shape, np.array(GP_t).shape, c1, c2)
+						# gp_prob_dict = {}
+						nbx = []
+						#print('Checking partitioned boxes...')
+						for b2 in boxes:
+							# print(b2)
+							f1 = b2[0] # box type
+							b1 = b2[1] # box
+							pr1 = pr - 1
+							dt1 = getBoxDelta(b1) #max(b1.max_side_width()*N_GRIDS, MIN_DELTA)
+							# if dt1 < dt:
+							#stack.push(BoxInfo(pr1, b1, dt1, tp)) # adding to stack
+							
+							stack.push(BoxInfo(pr1, b1, dt1, tp, bttyp))
+								#else:
+							if DEBUG:
+								print('Added box after only partitioning', str(b1)) 
+							#new_boxes.append((b1, dt1))
+							count += 1
+							# else:
+							#   vol_covered += b1.volume()  
+							#   print('-- discarding box {0} after multiple attempts'.format(b1))
+						ts1 = kdt_true.len() if kdt_true else 0.0
+						ts2 = kdt_false.len() if kdt_false else 0.0
+					
+						if DEBUG:
+							print(ts1, ts2, 'checking partitioned boxes...', len(boxes), len(nbx))#, str(nbx))
+			
+			# if fflag:
+			# 	break
+				
+			queue_size = stack.size()
+			decided_box = True_boxes+unsat_box
+			next_boxes_to_check = []
+			vol_covered = 0.0
+			# for nb in  kdt_true.items():
+			# 	bb = nb.toBox(param_names)
+			# for nb in  kdt_false.items():
+			# 	bb = nb.toBox(param_names)
+			# 	vol_covered += bb.volume()
+			# for nb in  kdt_false.items():
+			# 	bb = nb.toBox(param_names)
+			for bb in  sat_box:
+				vol_covered += bb.volume()
+			for bb in  unsat_box:
+				vol_covered += bb.volume()
+			# envelope = bfact.get_cover(sat_box)
+			vol_checkd = 0.0
+			for cb in checked_boxes:
+				vol_checkd += cb.volume()
+
+			true_covered =  bfact.get_cover(True_boxes, check=False)
+			all_covered = bfact.get_cover(decided_box, check=False) #if decided_box > 0 else 
+			if all_covered.volume() >= sbox_all.volume() and current_sbox.volume() >= sbox_all.volume():
+				print('may be stopped -- gen', (i, gen), queue_size, all_covered.volume(), sbox_all.volume(),\
+					 'No exploration -- all covered ({0}),  covered ({1}), current env {2}, sbox ({3})'.format(all_covered, true_covered, current_sbox, sbox_all))
+				#break
+			# new_items = kdt_queue.len()	
+			ifCovered = (current_sbox.volume() <= pre_envelope.volume() and current_sbox.volume() >= sbox_all.volume())
+			
+			# if len(checked_boxes) > 0:
+			if vol_covered >= sbox_all.volume():
+				print('No more extension -- gen', (i, gen), queue_size, vol_covered, sbox_all.volume(),\
+					 '-- all covered ({0}), covered ({1}), current env {2}, sbox ({3})'.format(all_covered, true_covered, current_sbox, sbox_all))
+			elif ifCovered: 
+				print('No more extension -- gen', (i, gen), queue_size, vol_covered, sbox_all.volume(),\
+					 '-- all covered ({0}), covered ({1}), current env {2}, sbox ({3})'.format(all_covered, true_covered, current_sbox, sbox_all))
+
+				if GPC:
+					next_boxes_to_check, c33 =  getGPRBoxes(sbox_all, pre_envelope, current_sbox, kdt_true, kdt_false, True_boxes, par_names, gen, extra = False)
+					cc1 = 0
+					nbx = []
+					for bb in next_boxes_to_check:
+						pri = initPriority #np.random.uniform((min_pri+max_pri)/2, max_pri, 1)[0] #initPriority-2
+						delta_to_use = getBoxDelta(bb)
+						stack.push(BoxInfo(pri, bb, delta_to_use, 0, BoxTyp.APPROX))	
+						approx_box_added += 1
+						cc1 += 1
+				GPC = False
+			#((i-pre_gen) > 20 and i%5 == 0) or or queue_size%200 == 0
+
+			elif GPC:
+				GPC_conditions = False
+				if c2 > 2*len(par_names):
+					if queue_size < 5*np1 and i%2 == 0: ### last case when queue is depleting
+						GPC_conditions = True
+					if 5*np1 <= queue_size < 200 and ((c2 - pre_count) > FREQUENT or i%3 == 0):
+						GPC_conditions = True
+					if 200 <= queue_size < 500 and ((c2 < 500 or (c2 - pre_count) > FREQUENT/2) and i%7 < 2):
+						GPC_conditions = True
+					if 500 <= queue_size < 1000 and ((c2 < 1000 or (c2 - pre_count) > FREQUENT/2) and i%15 < 2):
+						GPC_conditions = True
+					if 1000 <= queue_size and (((c2 - pre_count) > FREQUENT/2) and i%30 < 2):
+						GPC_conditions = True
+				if GPC_conditions:
+					# and c2 > 2*len(par_names) and ((((c2 - pre_count) > FREQUENT or i%5 == 0) and \
+					# ((queue_size < 2000 and approx_box_added % 200 < 20) or queue_size < 500)) or queue_size < 6*np1):
+					#if GPC:					
+					# next_appr_sat_box =
+					# kdt_npg_sat, next_boxes_to_check =  getGPRBoxes(sbox_all, kdt_true, True_boxes, par_names, gen, extra = False)
+					next_boxes_to_check, c33 =  getGPRBoxes(sbox_all, pre_envelope, current_sbox, kdt_true, kdt_false, True_boxes, par_names, gen, extra = False)
+					cc1 = 0
+
+					# if i > 1 and (i % CLEAN_GEN == 0): # and queue_size > 5000):
+					# 	stack.clean()
+				
+					nbx = []
+					# for nb in kdt_queue.items():
+					# 	bb = nb.toBox(param_names)
+					for bb in next_boxes_to_check:
+						#delta_to_use = getBoxDelta(bb)
+						# added on 08/04/2022 -- not includong closest points to already approximated boxes 
+						# added on 25/03/2022 -- not includong closest points to true boxes
+					
+						rq = kdt_queue.search(kdi.KDInterval(bb))
+						#rt = kdt_false.search(kdi.KDInterval(bb))
+						if not rq : #or rf:
+							pri = initPriority #np.random.uniform((min_pri+max_pri)/2, max_pri, 1)[0] #initPriority-2
+							delta_to_use = getBoxDelta(bb)
+							stack.push(BoxInfo(pri, bb, delta_to_use, 0, BoxTyp.APPROX))	
+							#kdt_queue = kdt_queue.insert(kdi.KDInterval(bb.addDelta(0)))
+							kdt_queue = kdt_queue.insert(kdi.KDInterval(bb.addDelta(-MIN_EPS)))
+							cc1 += 1
+							approx_box_added += 1
+							# nbx.append(bb)
+						# elif not rf:#not(bfact.intersectsAny(bb, decided_boxes)):	
+						# 	stack.push(BoxInfo(pri+1, bb, delta_to_use, 0))			
+						# else:
+						# 	nbx.append(bb)
+						# else:
+						# 	nbx.append(bb)
+					# true_covered =  bfact.get_cover(kdt_npg_sat)
+					print('Approx -- gen', (i, gen), queue_size, 'GPR added', cc1, 'out of',\
+						len(next_boxes_to_check), vol_covered, sbox_all.volume(),'---- Extra---',\
+						'Extended all covered ({0}),  covered ({1}), current env {2}, sbox ({3})'.format(all_covered, true_covered, \
+							current_sbox, sbox_all))
+					npg, centres = next_boxes_to_check, c33
+					gen += 1
+			# diff = bfact.remove(true_covered.addDelta(2*MIN_EPS), bfact.boxIntersection(true_covered.addDelta(2*MIN_EPS), current_sbox))
+			# diff_vol = 0
+			# for dv in diff:
+			# 	diff_vol += dv.volume()
+			diff_box = true_covered.addDelta(2*EPS)
+			print('For extension -- gen', (i, gen), queue_size, current_sbox.fullyContains(diff_box), 'true covered', true_covered, \
+				'diff', diff_box, 'current', current_sbox, 'pre_env', pre_envelope)	
+			if vol_covered/current_sbox.volume() > 0.5  or current_sbox.atBoundary(true_covered) or \
+				not current_sbox.fullyContains(diff_box) or queue_size < np1:	#or current_sbox.atBoundary(all_covered)	
+				# true_covered =  bfact.get_cover(True_boxes, check=False)	
+				extended_box = extendEnvelope(pre_envelope, sbox_all, max(MAX_EPS, EB_N))
+				pre_envelope = current_sbox
+				current_sbox = extended_box
+
+				print('extension -- gen', (i, gen), queue_size, 'Extending --', 'sbox', sbox_all, 'covered', true_covered, 'extra', extended_box, \
+				'all covered ({0}),  covered ({1}), current env {2}, sbox ({3}), diff {4}'.format(all_covered, true_covered, current_sbox, sbox_all, diff_box))
+				if i> 20 and queue_size < 4*np1 :
+					#extra_boxes = [extra_box] 
+					extended_box1 = extendEnvelope(true_covered, sbox_all, EPS)
+					extra_boxes = bfact.remove(extended_box1, true_covered)
+					print(extra_boxes)
+					for bb in extra_boxes:
+						delta_to_use = getBoxDelta(bb) #bb.max_side_width()*N_GRIDS
+						# pri = np.random.uniform(min_pri, max_pri, 1)[0] #
+						
+						# pri = initPriority+1 #+1
+						pri = min_pri-2 #+1
+
+						stack.push(BoxInfo(pri, bb, delta_to_use, 0, BoxTyp.EXT))
+						approx_box_added += 1
+
+						kdt_queue = kdt_queue.insert(kdi.KDInterval(bb.addDelta(0)))
+						print('extension -- gen', (i, gen), queue_size, 'Extending --', bb)
+	
+				# elif (len(checked_boxes) > 100 and len(True_boxes) > 100) or queue_size < np1:
+			else:
+				print('Not extension  --gen', (i, gen), queue_size, vol_covered, sbox_all.volume(), \
+					'all covered ({0}),  covered ({1}), current env {2}, sbox ({3})'.format(all_covered, true_covered, current_sbox, sbox_all))
+			pre_ratio = ratio2
+
+			ratio = (100.0*vol_covered/total_volume) if total_volume > 0.0 else 100.0
+			ratio1 = (100.0*env_volume/total_volume) if total_volume > 0.0 else 100.0
+			ratio2 = (100.0*vol_checkd/total_volume) if total_volume > 0.0 else 100.0
+			if abs(pre_ratio - ratio2) > 0.5 : #not int(pre_ratio) == int(ratio):
+				print('___________________________________')
+				print('Envelope {0:0.2f}% {1:0.2f}% of the Box checked, {2:0.2f}% decided .....'.format(ratio, ratio2, ratio1))
+				print('___________________________________')
+			sk+= '\n\tNew boxes added: {0}/{1}, previous {2}, decided {3}, min delta {4}, decided {5:0.2f}%, checked {6:0.2f}-{7:0.2f}%, envelope {8:0.2f}%'.format(count, c2, pre_count, count2, min_delta, ratio1, pre_ratio, ratio2, ratio) #+ ' box decided: '+ str(count2) + ' min_delta: '+ str(min_delta)
+			# if pre_count == count and count2 == 0:
+			#   print('New boxes', new_boxes)
+			#   break
+			print(sk)
+			# print(i, queue_size)
+
+			# if i%2 == 0 : #and i > 0:
+				
+			# sys.stdout.flush()
+
+			if (c2 - pre_count) > FREQUENT :#or (i > 100 and (c2 - pre_count) < 5.0):
+				st_clone = stack.clone()
+				# npg1, c33 =  getGPRBoxes(pre_envelope, current_sbox, kdt_true, kdt_false, True_boxes, par_names, i, extra = False) #[1]
+				# npg = []
+				# for bx in npg1:
+				# 	rq = kdt_queue.search(kdi.KDInterval(bb))
+				# 	#rf = False #kdt_false.search(bb)
+				# 	if not rq:
+				# 		npg.append(bx)
+				# else:
+				# 	npg, c33 = [], []
+				# nbx = []
+				# for bb in npg:
+				# 	rt = kdt_true.search(kdi.KDInterval(bb.addDelta(MIN_EPS*3)))
+				# 	if not rt: #not(bfact.intersectsAny(bb, decided_boxes)):	
+				# 		nbx.append(bb)
+				writeToFile(sat_box, st_clone, par_names, unsat_box) 
+				print('---- Number of trainig points', len(sat_box), len(unsat_box), c2, pre_count)
+				print('@@@ --- temp plot ---', (time.time() - stime)/3600, 'hr')
+				pre_count = c2
+				pre_gen = i
+				print('--- plotting for gen ', i, 'NPG', str(i%2==0))
+				figs = plot_sat_boxes(sbox_all, sat_box, par_names, ratio1, npg, centres, i, unsat_box) 
+				if PLOT:
+					pp = PdfPages(plotName)
+					for fig  in figs:
+						pp.savefig(fig)
+					pp.close()
+				sys.stdout.flush()
+
+			i += 1
+			
+			if TEST and i > 5 and len(sat_box) > 500 :
+				st_clone = stack.clone()
+				writeToFile(sat_box, st_clone, par_names, unsat_box) 
+				break
+
+			# if len(sat_box+unsat_box) > 0: 
+			#   covered_box = bfact.get_cover(sat_box+unsat_box)
+			#   if covered_box.contains(sbox_all):
+			#       break
+
+		checked_boxes = sat_box+unsat_box
+		if len(checked_boxes) > 0:
+			covered_box = bfact.get_cover(checked_boxes)
+			print('volumes', covered_box.volume(), sbox_all.volume())
+		print('{0}% of the Box covered .....'.format(ratio1))
+		figs = plot_sat_boxes(sbox_all, sat_box, par_names, ratio1, unsat_box=unsat_box) 
+		if PLOT:
+			pp = PdfPages(plotName)
+			for fig  in figs:
+				pp.savefig(fig)
+			pp.close()
+		sys.stdout.flush()
+		return (sat_box, unsat_box, undet_box)      
+
+	def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_centers = [], gen = 0, unsat_box = []):
+		figs = []
+		n_par = len(par_names)  
+		contract = {}
+		for i in range(n_par):
+			contract.update({par_names[i]:i})
+		b_map = sbox_all.get_map()
+		param_bounds_all = []
+		for it in sorted(par_names):
+			pb = [b_map[it].leftBound(), b_map[it].rightBound()]
+			param_bounds_all.append(pb)
+
+		if len(par_names) >= 3:
+			subsets_3 = findsubsets(par_names, 3)
+			for sub in subsets_3: 
+				par = [contract[i] for i in sub]
+				axisname = list(sub)
+				fig1 = plt.figure()
+				plt.title('3D project {0}%'.format(ratio))
+				ax = fig1.add_subplot(111, projection="3d")
+				ax.set_xlabel(axisname[0])
+				ax.set_ylabel(axisname[1])
+				ax.set_zlabel(axisname[2])
+				xlim, ylim, zlim = param_bounds_all[par[0]], param_bounds_all[par[1]], param_bounds_all[par[2]]
+				x1 = []
+				x2 = []
+				x3 = []
+				for satb in sat_boxes:
+					x = []
+					w = []
+					p1, p2, p3 = sub
+					sat = satb.get_map()
+					x11 = (sat[p1].mid().leftBound())
+					x12 = (sat[p2].mid().leftBound())
+					x13 = (sat[p3].mid().leftBound())
+					x1.append(x11)
+					x2.append(x12)
+					x3.append(x13)
+				
+				ax.plot3D(x1, x2, x3, 'b.')
+
+				x1 = []
+				x2 = []
+				x3 = []
+				for satb in npg:
+					x = []
+					w = []
+					p1, p2, p3 = sub
+					sat = satb.get_map()
+					x11 = (sat[p1].mid().leftBound())
+					x12 = (sat[p2].mid().leftBound())
+					x13 = (sat[p3].mid().leftBound())
+					x1.append(x11)
+					x2.append(x12)
+					x3.append(x13)
+
+				if gen%2 ==0:
+					ax.plot3D(x1, x2, x3, 'r.')
+				else:
+					ax.plot3D(x1, x2, x3, 'm.')
+				x1 = []
+				x2 = []
+				x3 = []
+				for satb in cluster_centers:
+					p1, p2, p3 = sub
+					sat = satb.get_map()
+					x11 = (sat[p1].mid().leftBound())
+					x12 = (sat[p2].mid().leftBound())
+					x13 = (sat[p3].mid().leftBound())
+					x1.append(x11)
+					x2.append(x12)
+					x3.append(x13)
+
+				ax.plot3D(x1, x2, x3, 'g.')
+				# ax.set_xlim(xlim)     
+				# ax.set_ylim(ylim)     
+				# ax.set_zlim(zlim)
+				figs.append(fig1)
+
+		if len(param_names) >= 2:
+			param_len = 2 
+			# for all_params in dependent:
+			#   # param_len = len(all_params.keys())
+			subsets_2 = findsubsets(param_names, param_len)
+			for sub in subsets_2: #for each subset of size 2 
+				# print('For param set', sub, type(sub))
+				par = [contract[i] for i in sub]
+
+				xlim, ylim = param_bounds_all[par[0]], param_bounds_all[par[1]]
+				x = []
+				w = []
+				axisname = list(sub)
+				for p in par:
+					x.append(param_bounds_all[p][0])
+					w.append(param_bounds_all[p][1] - param_bounds_all[p][0])
+				
+				fig_t = plt.figure()
+				plt.title('2D project '+str(axisname)+ '{0}%'.format(ratio))
+				# xlim = [1.0*x[0], 1.0*(x[0] + w[0])]
+				# ylim = [1.0*x[1], 1.0*(x[1] + w[1])]
+				# print(xlim, ylim)
+				plt.xlabel(axisname[0])
+				plt.ylabel(axisname[1])
+				# plt.ylim()
+				currentAxis = plt.gca()
+				currentAxis.set_xlim(xlim)
+				currentAxis.set_ylim(ylim)
+				
+				x1 = []
+				x10 = []
+				x2 = []
+				for satb in sat_boxes:
+					p1, p2 = sub
+					
+					sat = satb.get_map()
+					x11 = (sat[p1].mid().leftBound())
+					x12 = (sat[p2].mid().leftBound())
+					# x13 = (sat[p3].mid().leftBound())
+					x10.append(x11)
+					x1.append(x11)
+					x2.append(x12)
+					#currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor='grey', alpha=1))
+				
+				currentAxis.plot(x10, x2, 'b.')
+
+				if len(param_names) == 2:
+					x1 = []
+					x10 = []
+					x2 = []
+					for satb in npg:
+						p1, p2 = sub
+						
+						sat = satb.get_map()
+						x11 = (sat[p1].mid().leftBound())
+						x12 = (sat[p2].mid().leftBound())
+						# x13 = (sat[p3].mid().leftBound())
+						x10.append(x11)
+						x1.append(x11)
+						x2.append(x12)
+						#currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor='grey', alpha=1))
+					
+					if gen%2 ==0:
+						currentAxis.plot(x10, x2, 'r.')
+					else:
+						currentAxis.plot(x10, x2, 'm.')
+
+					x1 = []
+					x10 = []
+					x2 = []
+					for satb in cluster_centers:
+						p1, p2 = sub
+						
+						sat = satb.get_map()
+						x11 = (sat[p1].mid().leftBound())
+						x12 = (sat[p2].mid().leftBound())
+						# x13 = (sat[p3].mid().leftBound())
+						x10.append(x11)
+						x1.append(x11)
+						x2.append(x12)
+
+					currentAxis.plot(x10, x2,  'g.')
+				x1 = []
+				x10 = []
+				x2 = []
+				for satb in unsat_box:
+					p1, p2 = sub
+					sat = satb.get_map()
+					x = (sat[p1].leftBound(), sat[p2].leftBound())
+					w = (sat[p1].width(), sat[p2].width())
+					# x13 = (sat[p3].mid().leftBound())
+					# x10.append(x11)
+					# x1.append(x11)
+					# x2.append(x12)
+					currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor='grey', alpha=1))
+				figs.append(fig_t)
+
+		if len(param_names) > 2:
+			# param_len = 2 
+			subsets_n1 = findsubsets(param_names, len(param_names)-1)
+			for sub in subsets_n1: 
+				extra_par = ''
+				for p in param_names:
+					if p not in sub:
+						extra_par = p
+						break
+				extra_par_id = contract[extra_par]
+				extra_par_bounds = param_bounds_all[extra_par_id] #param_bounds_all[extra_par_id]
+				lb , ub = extra_par_bounds[0], extra_par_bounds[1]
+				extra_par_slices = np.linspace(lb, ub, int((ub - lb)/0.01))
+				# print(extra_par, 'extra_par_slices', extra_par_slices)
+
+				par = [contract[i] for i in sub]
+				xlims = [param_bounds_all[par[i]] for i in range(len(sub))]
+				axisname = list(sub)
+				max_slice = (0, [], 0)
+				for j in range(1, len(extra_par_slices)):
+					extra_l, extra_u = extra_par_slices[j-1], extra_par_slices[j]
+					# xlim, ylim, zlim = param_bounds_all[par[0]], param_bounds_all[par[1]], param_bounds_all[par[2]]
+					xs = [[] for i in sub]
+					# flag = False
+					k = 0
+					xs_1 = []
+					for satb in sat_boxes:
+						sat = satb.get_map()
+						# x12 = (sat[p2].mid().leftBound())
+						# x13 = (sat[p3].mid().leftBound())
+						if extra_l <= sat[extra_par].leftBound() < extra_u and extra_l < sat[extra_par].rightBound() <= extra_u:
+							for i in range(len(sub)):
+								p = sub[i]
+								x11 = (sat[p].mid().leftBound())
+								xs[i].append(x11)
+							# flag = True
+							k += 1
+							xs_1.append(satb)
+					k = bfact.get_cover(xs_1, check = False).volume() if len(xs_1) > 0 else 0
+					if k > max_slice[0]:
+						max_slice = (k, xs, j)
+				
+				k, xs, j = max_slice
+				#print(k, j, len(xs))
+				fig = plt.figure()
+				plt.title('2 slice '+extra_par+' -- max slice') # {0}, {1} -- {2}%'.format(j, k, ratio))
+				if len(sub) == 3 and len(xs) > 2:
+					# print('plot 3 dim')
+					ax = fig.add_subplot(111, projection="3d")
+					ax.set_xlabel(axisname[0])
+					ax.set_ylabel(axisname[1])
+					ax.set_zlabel(axisname[2])
+					ax.plot3D(xs[0], xs[1], xs[2], 'b.')
+					# print('[')
+					# for i in range(k):
+					# 	print('[{0}, {1}, {2}]'.format(xs[0][i], xs[1][i], xs[2][i]))
+					# print(']')
+
+				elif len(sub) == 2 and len(xs) > 1:
+					# print('plot 2 dim')
+					ax = plt.gca() #fig.add_subplot(111) #, projection="3d")
+					ax.set_xlabel(axisname[0])
+					ax.set_ylabel(axisname[1])
+					# ax.set_zlabel(axisname[2])
+					ax.plot(xs[0], xs[1], 'b.')
+					ax.set_xlim(xlims[0])       
+					ax.set_ylim(xlims[1])
+				figs.append(fig)
+
+			subsets_n1 = findsubsets(param_names, 2)
+			for sub in subsets_n1: 
+				extra_pars = []
+				for p in param_names:
+					if p not in sub:
+						extra_pars.append(p)
+						# break
+				# print('extra_pars', extra_pars)
+				# extra_par_id = [contract[ep] for ep in extra_pars]
+				# extra_par_bounds = [param_bounds[epd] for epd in extra_par_id] #param_bounds_all[extra_par_id]
+				extra_par_slices = {}
+				for ep in extra_pars:
+					ep_bound = param_bounds_all[contract[ep]]
+					lb , ub = ep_bound[0], ep_bound[1]
+					extra_par_slices[ep] = np.linspace(lb, ub, int((ub - lb)/0.01))
+					# print(ep, 'extra_par_slices', len(extra_par_slices[ep]))
+
+				par = [contract[i] for i in sub]
+				xlims = [param_bounds_all[par[i]] for i in range(len(sub))]
+				axisname = list(sub)
+				slices_list = []
+				for ep in extra_pars: 
+					ep_slice = list(range(1, len(extra_par_slices[ep])))
+					# print(ep, ep_slice)
+					slices_list.append(ep_slice)
+				
+				max_slice = (0, [], 0)
+				sl = 0
+				for element in itertools.product(*slices_list):
+					# print(element)
+					xs = [[] for i in sub]
+					# flag = False
+					k = 0
+					for satb in sat_boxes:
+						sat = satb.get_map()
+						ep_fl = False
+						fp = 0
+						for p in range(len(extra_pars)): 
+							ep = extra_pars[p]
+							# if sl < 1 and k < 3:
+							# print(sl, element, ep, element[p], len(extra_par_slices[ep]))
+							el, eu = extra_par_slices[ep][element[p]-1], extra_par_slices[ep][element[p]]
+							
+							if el <= sat[ep].leftBound() < eu and el < sat[ep].rightBound() <= eu:
+								fp += 1
+						if fp == len(extra_pars):
+							for i in range(len(sub)):
+								p = sub[i]
+								x11 = (sat[p].mid().leftBound())
+								# x11 = (sat[p][0]+sat[p][1])/2
+								xs[i].append(x11)
+							k += 1
+					# print(k, xs, sl)
+					
+					if k > max_slice[0]:
+						max_slice = (k, xs, sl)
+					sl += 1
+				
+				k, xs, j = max_slice
+				fig = plt.figure()
+				plt.title('3 project '+str(extra_pars)+' -- max slice {0} -- {1}'.format(j, ratio))
+				# print(len(xs), xs)
+				# print(xs[0], xs[1])
+				if len(xs) > 1:
+				# print('plot 2 dim')
+					ax = plt.gca()#fig.add_subplot(111) #, projection="3d")
+					ax.set_xlabel(axisname[0])
+					ax.set_ylabel(axisname[1])
+					# ax.set_zlabel(axisname[2])
+					ax.plot(xs[0], xs[1], 'b.')
+					ax.set_xlim(xlims[0])       
+					ax.set_ylim(xlims[1])
+				figs.append(fig)
+		return figs
+
+	def readFromFile():
+		stack = []
+		sat_box = []
+		pnames = sorted(param_names)
+		with open(all_sat_file, 'r') as fp_sat:
+			csv_reader = csv.reader(fp_sat, delimiter=',')
+			for row in csv_reader:
+				b_edges = {}
+				j = 0
+				# p1 = row[0]
+				# p2 = row[1]
+				tf = int(row[-1])
+				if tf == 1:
+					for l in range(0, 2*len(pnames), 2):
+						l1 = float(row[l]) #.split(';')[0])
+						l2 = float(row[l+1]) #.split(';')[1])
+						it = pnames[int(l/2)]  
+						b_edges.update({it:PyInterval(l1, l2)})
+						j += 1
+					dbox = Box(b_edges) 
+					sat_box.append(dbox)
+
+		with open(all_q_file, 'r') as fp_q:
+			csv_reader = csv.reader(fp_q, delimiter=',')
+			for row in csv_reader:
+				b_edges = {}
+				j = 0
+				lst = 1
+				# p1 = row[0]
+				# p2 = row[1]
+				for l in range(lst, lst+len(pnames)):
+					l1 = float(row[l].split(';')[0])
+					l2 = float(row[l].split(';')[1])
+					it = pnames[int(l-lst)]   
+					b_edges.update({it:PyInterval(l1, l2)})
+					j +=1
+				
+				# print(row[0], l, row[l], j)
+				j = lst+len(pnames)
+				dbox = Box(b_edges) 
+				b_pri = int(row[j]) 
+				b_del = float(row[j+1])
+				b_tp = int(row[j+2])
+				b_ttyp = int(row[j+3])
+				# sat_box.append(dbox)
+				stack.append(BoxInfo(b_pri, dbox, b_del, b_tp, b_ttyp))
+		return (sat_box, stack, pnames)
+
+	def writeToFile(sat_box, st_q, par_names, unsat_box = []):
+		print('--- writeToFile -- ', len(sat_box), st_q.size(), len(unsat_box), par_names)
+		pnames = ','.join(par_names)
+		with open(all_sat_file, 'w+') as fp_sat:
+			csv_writer = csv.writer(fp_sat, delimiter=',')
+			for sb in sat_box:
+				row = [] #pnames]
+				sb_edegs = sb.get_map()
+				for it in sorted(sb_edegs.keys()):
+					l1 = sb_edegs[it].leftBound()
+					l2 = sb_edegs[it].rightBound()
+					# s = '{0},{1}'.format(l1, l2)
+					row.append(l1)
+					row.append(l2)
+				row.append(1)
+				csv_writer.writerow(row)
+			for sb in unsat_box:
+				row = [] #pnames]
+				sb_edegs = sb.get_map()
+				for it in sorted(sb_edegs.keys()):
+					l1 = sb_edegs[it].leftBound()
+					l2 = sb_edegs[it].rightBound()
+					# s = '{0},{1}'.format(l1, l2)
+					# row.append(s)
+					row.append(l1)
+					row.append(l2)
+				row.append(0)
+				csv_writer.writerow(row)
+		with open(all_q_file, 'w+') as fp_q:
+			csv_writer = csv.writer(fp_q, delimiter=',')
+			# for binfo in st_q:
+			while(not st_q.isEmpty()):
+				binfo = st_q.pop()
+				b_pri, dbox, b_del, b_tp, b_ttyp = binfo.getInfo()
+				row = [pnames] #'{0}'.format(datatp)]
+				dbox_edges = dbox.get_map()
+				for it in sorted(dbox_edges.keys()):
+					l1 = dbox_edges[it].leftBound()
+					l2 = dbox_edges[it].rightBound()
+					s = '{0};{1}'.format(l1, l2)
+					row.append(s)
+				row.append('{0}'.format(b_pri))
+				row.append('{0}'.format(b_del))
+				row.append('{0}'.format(b_tp))
+				row.append('{0}'.format(b_ttyp))
+				
+				csv_writer.writerow(row)
+
+	ha1 = getModel(inputfile)
+
+	outputEqns = getEquationsFile(outputfile)
+	for var in outputEqns:
+		print(var + ' : '+ str(outputEqns[var]))
+		ha1.macros.update({var:outputEqns[var]})
+	#print(str(ha1))
+	ha = ha1.simplify()
+	#print(str(ha))
+	'''detect parameters'''
+	print('model parsed')
+	
+	all_data = []
+	all_props = []
+	tp = 0
+	with open(datafile) as fp:
+		fr = csv.reader(fp, delimiter=',')
+		for row in fr:
+			tp += 1
+			# if tp == PropRow:
+			data = [float(row[i]) for i in range(len(row))]
+			(prop, propneg) = getPropertyFromData(data, outputEqns)
+			 #convert2Prop(data, dtype) # convert a row to property
+			if DEBUG:
+				print('Property: ', prop) #, ' State: ', dtype)
+				print('PropertyNeg: ', propneg) #, ' State: ', dtype)
+			(pn, negpn) = getProperties((prop, propneg)) #, dtype)
+			all_data.append(data)
+			all_props.append((pn, negpn))
+
+			if tp >= DATA_tp:
+				break
+
+	all_params = {}
+	if not paramfile == '':
+		all_params = getParam(paramfile)
+	else:
+		inits = {}
+		for c in ha.init.condition:
+			# print(str(c.literal1), str(c.literal2))
+			inits.update({str(c.literal1):str(c.literal2)})
+
+		for var in ha.variables.keys():
+			if var == 'time':
+				continue
+			rng = ha.variables[var]
+			if var in all_params.keys() or var not in inits.keys():
+				all_params.update({var:rng})
+
+	'''detect parameters'''
+	# for par in all_params:
+	#   print(par + ' : '+ str(all_params[par]))
+		
+	#dataSet = Data(datafile)
+
+	#print(str(pha))
+	# with open(outfile, 'w') as csvfile:
+	#   print('outfile', outfile)
+
+	# param_len = 2 
+	param_len = len(all_params.keys())
+	subsets_2 = findsubsets(list(all_params.keys()), param_len)
+	
+	figs = []
+	
+	for sub in subsets_2: #for each subset of size 2 
+		print('For param set', sub, type(sub), default_params, default_param_box)
+		params = {}
+		other_params = {}
+		for key in all_params:
+			# print(key)
+			if key in sub:
+				params.update({key:all_params[key]})
+				# d_iv = '(0.5*({0}+{1}))'.format(all_params[key].getleft(), all_params[key].getright())
+			else:
+				val = all_params[key]
+				if key in default_param_box:
+					val = default_param_box[key]
+				other_params.update({key:val})
+				#pha.addInit(key, all_params[key])
+				print('params fixed: ', key, str(val))
+
+		pha = convertHA2PHA(ha, params)
+		for key in other_params:
+			pha.addInit(key, other_params[key])
+		print('params', params)
+		print('model parameters', str(pha.parameters))
+
+		#(satparam, unsatparam, undetparam) = getEstimatedParameters(pha, params, dataSet, d, k)
+		(satparam, unsatparam, undetparam) = getEstimatedParameters(pha, params, d, k_length, all_props)#, satfile)
+
+		sbox_all = getBox(params)
+		par_names = sorted((sbox_all.get_map()).keys())
+		pnames = ','.join(sorted(par_names))
+
+		print('##################################')
+		print('SAT boxes ---', pnames)
+
+		with open(outfile, 'a+') as csvfile:
+			spamwriter = csv.writer(csvfile, delimiter=',')
+			i = 0
+			names = []
+			for b in satparam:
+				b_map = b.get_map()
+				row = ['data']
+				for key in sorted(b_map.keys()):
+					row.append(key+'_low')
+					row.append(key+'_up')
+					names.append(key)
+				i += 1          
+				spamwriter.writerow(row)
+				if i > 0:
+					break
+
+			xdata = []
+			for b in satparam:
+				b_map = b.get_map()
+				row = [pnames]
+				xr = []
+				for key in sorted(b_map.keys()):
+					#row.append((float(b_map[key].leftBound()), float(b_map[key].rightBound())))
+					row.append(float(b_map[key].leftBound()))
+					row.append(float(b_map[key].rightBound()))
+					xr.append((b_map[key].leftBound()+b_map[key].rightBound())/2)
+				row.append(TRUE)
+				xdata.append(xr)
+				spamwriter.writerow(row)
+			# for b in unsatparam:
+			#   b_map = b.get_map()
+			#   row = [pnames]
+			#   for key in sorted(b_map.keys()):
+			#       #row.append((float(b_map[key].leftBound()), float(b_map[key].rightBound())))
+			#       row.append(float(b_map[key].leftBound()))
+			#       row.append(float(b_map[key].rightBound()))
+			#   row.append(FALSE)
+			#   spamwriter.writerow(row)
+
+			i += 1
+		print('##################################')
+		# break
+		figs += plot_sat_boxes(sbox_all, satparam, par_names)
+		
+	if PLOT:
+		pp = PdfPages(plotName)
+		for fig  in figs:
+			pp.savefig(fig)
+		pp.close()
+
+
+def checkproperty(model, prop, sbox, delta, klen, tp, pid = 0, neg = False):
+	g = model.getGraph()
+	st = model.init.mode
+	s = ''
+	for it in model.variables:
+		s += it + ':' + str(model.variables[it])+ ' , '
+	# print('##checkproperty', 'model.variables: ', s, 'model.init', str(model.init))
+	if DEBUG:
+		print('delta: ', delta)
+	smts = []
+	i = 0
+	for path in g.getKPaths(st, klen):
+		# print('checkproperty', path)
+		depth = len(path)
+		#smt = ''
+		smtEncode = generateSMTforPath(model, path, delta)  
+		propertySmt = to_SMT(prop, smtEncode)
+		# print('checkproperty', propertySmt)
+		#propertySmtneg = Node(prop).negate().toSMT()
+		#if(neg):
+		#   smtEncode.addGoal(propertySmtneg)
+		#else:
+		smtEncode.addGoal(propertySmt)          
+		smt = smtEncode.toString(neg)
+		# print('2.######')
+		#if(i == 1):
+		#   break
+		fn = getPropSMT(tp, pid, i, neg)
+		fname = os.path.join(tempfolder, fn+'.smt2')
+		with open(fname, 'w') as of:
+			of.write(smt)   
+		#sys.stdout.flush()
+		
+		#st = [dRealCmd, fname, "--precision", str(delta), "--ode-step", str(0.05), "--model"]
+		st = [dRealCmd, fname, "--precision", str(delta), "--model"]
+		
+		if DEBUG:
+			print('\t----- '+str(st))
+		# p = subprocess.Popen(st, stdout=subprocess.PIPE)
+		# (output, err) = p.communicate(timeout=1200)  
+		'''This makes the wait possible'''
+		# p_status = p.wait()   
+		# out = p_status
+
+		# p = subprocess.run(st) #, capture_output=True)
+		try:
+			gc.collect()
+			output =  subprocess.check_output(st)#, timeout=6*3600)
+			out = 0
+		except subprocess.CalledProcessError as e:
+			out = e.returncode
+			output = e.stdout
+		except Exception as e:
+			print('Running call again....') 
+			if DEBUG:
+				print('\t----- '+str(st))
+			try:
+				output =  subprocess.check_output(st)
+				out = 0
+			except subprocess.CalledProcessError as e:
+				out = e.returncode
+				output = e.stdout
+		if DEBUG:
+			print('dReal res:', out, output)
+
+		# start_time = time.time()
+		
+		# end_time = time.time()
+
+		# if end_time - start_time:
+		#   p.kill()
+		#   print('Killed following call to dReal... ')#, st)
+		#   print('Running call again....') 
+		#   print('\t----- '+str(st))
+		#   (output, err) = p.communicate()
+		#   '''This makes the wait possible'''
+		#   p_status = p.wait() 
+
+		'''This will give you the output of the command being executed'''
+		if DEBUG:
+			print ("\t----- Output: " + str(out), 'depth ', depth, i) #,  'out', output)       
+		
+		sys.stdout.flush()
+		
+		if(out == 0 and b'delta-sat' in output):
+			if DEBUG:
+				print('delta-sat', SAT)
+			return (SAT, i, output)
+		elif(out == 0 and b'unsat' in output):
+			if DEBUG:
+				print('unsat')
+			res = (UNSAT, i, '')
+		else:               
+			res = (UNKNOWN, i, '')
+			if DEBUG:
+				print('ERROR')
+			return res
+
+		i +=1    
+	return res  
+		
+def evaluate(args):
+	model, all_props, bi, klen, pid = args
+	(ip, sbox, d, tp, bttyp) = bi.getInfo()
+	prop = all_props[tp]
+
+	params = []
+
+	if DEBUG:
+		print(prop, sbox, d, klen, pid)
+	''' delta is a fraction of min dimension of the box'''
+	# delta = d #
+	delta = d #max(sbox.min_side_width() * 0.1, EPS)
+	sk = 'Evaluate - Pid: ' + str(pid) +' Checking box : ' + str(sbox) + 'delta: '+ str(delta) + ' klen: '+ str(klen)
+		
+	updateModel(model, sbox)
+	#propNode = getSTL(prop)[0]
+	(propNode, propNeg1) = prop
+	propNeg = getNegatedProperty(propNeg1) #, instance1)
+	if DEBUG:
+		print('In evaluate') #,\t prop : '+str(propNode)+'\n\t negProp : '+str(propNeg1) )
+	sk += '\n -- @@ prop: '+ str(propNode) +', ' + str(propNeg1)
+	(res1, i1, out1) = checkproperty(model, propNode, sbox, delta, klen, tp, pid)
+	(res2, i2, out2) = checkproperty(model, propNeg, sbox, delta, klen, tp, pid, neg = True)    
+	sk += '\n -- 1. ###### {0}, {1}'.format(res1, res2)
+	# print(sk)
+	# sys.stdout.flush()
+	flag = False
+	if (res1 == UNSAT):
+		ret = (FALSE, None)
+		sk += ' -- FALSE, None'
+	elif (res2 == UNSAT):
+		ret = (TRUE, None)
+		sk += ' -- TRUE, None'
+	else:
+		instance1 = getSAT(model, i1, tp, pid, False) #;getSATPoint(i1)
+		instance2 = getSAT(model, i2, tp, pid, True) #.getSATPoint(i2)
+		instance = Instance(p1 = instance1, p2 = instance2)
+		ret = (UNDET, instance)
+		sk += ' -- UNDET, Instance'
+	#
+	# if DEBUG:
+	#print(sk)
+	sys.stdout.flush()
+	'''
+	if POOL:
+		queue.put((pid, ret))
+		# queue.put(ret)
+		# queue.close()
+		# queue.put_nowait((pid, ret))
+	else:
+		queue.put((pid, ret))
+		# queue.put(ret)
+
+	return
+	'''
+	if flag:
+		exit()
+	return ret
+			
+def getSAT(model, i, tp, pid = 0, neg = False):
+	# if neg:
+	#   fn = 'tempC_p_'+str(rank)+'_'+str(pid)+'_'+str(i)
+	# else:
+	#   fn = 'temp_p_'+str(rank)+'_'+str(pid)+'_'+str(i)
+	# fname = os.path.join(tempfolder, fn+'.smt2.model')
+
+	fn = getPropSMT(tp, pid, i, neg)
+	fname = os.path.join(tempfolder, fn+'.smt2.model')
+	if DEBUG:
+		print('Reading sat instance :', fname)
+	sys.stdout.flush()
+	satinstance = parseInstance(fname)
+	#print(satinstance.variables[0])
+	satinstance.addModel(model)
+	satinstance.addDepth(i)
+	return satinstance
+		
+def updateModel(model, sbox):
+	#print('updateModel', box, 'model.params: ')
+	#for it in model.parameters:
+	#   print(it, str(model.parameters[it]))
+	edges = sbox.get_map()
+	for it in edges:
+		intrvl = edges[it]
+		if DEBUG:
+			print('InUpdate Model: ', intrvl.leftBound(), str(intrvl.leftBound()))
+		param = Range(Node(intrvl.leftBound()), Node(intrvl.rightBound()))
+		if it in model.parameters:
+			model.parameters.update({it: param})
+		if it in model.variables:
+			model.variables.update({it: param})
+	s = ''
+	for it in model.parameters:
+		s += it + ':' + str(model.parameters[it])+ ' , '
+	if DEBUG:
+		print('updatedModel', 'model.params: ', s)
+	#return model
+		
+'''
+In case of adjacent sat instances.. divide the box through the adjacent dimension
+intersecting boxes -- error box -- remove it
+smaller box -- cover it and remove
+otherwise, divide along the middle point
+
+'''
+def heuristicPartition(sbox, instance, delta):
+	boxesWPriority = []
+	boxes = []
+	
+	inst1 = instance.p1
+	inst2 = instance.p2
+	
+	point = inst1.getSATPoint()
+	negpoint = inst2.getSATPoint()
+
+	satb = inst1.getSATBox()
+	negsatb = inst2.getSATBox()
+
+	if DEBUG:
+		print(sbox, 'point:', point, 'negpoint:', negpoint)
+		sys.stdout.flush()
+	
+	if point.empty() or negpoint.empty():
+		return []
+
+	# global noise
+	emap = {}
+	b_map = sbox.get_map()
+	for it in b_map.keys():     
+		# emap.update({it: PyInterval(0.01 * noise[it])})
+		emap.update({it: PyInterval(delta, delta)})
+
+	adjacentEdges = satb.adjacentEdges(negsatb)
+	adjacent = False
+	if len(adjacentEdges) > 0:
+		for it in adjacentEdges:
+			#print('adjacent', it)
+			intrvl = b_map[it]
+			intrvl.mark()
+		adjacent = True
+	#emap = {}
+	#b_map = sbox.get_map()
+	#for it in b_map.keys():        
+	#   emap.update({it: PyInterval(EPS)})
+	
+	if DEBUG:
+		print('heuristicPartition: Box = ', str(sbox)) 
+	
+	''' middle point between propSat and propNegSat '''
+	mPoint = middlePoint(point, negpoint) 
+	boxes = bfact.bisect(sbox, emap, NOMARK) #, mPoint) #negpoint)
+
+	# b3 = bfact.boxIntersection(satb, negsatb)
+	
+	if satb.adjacent(negsatb) or satb.intersects(negsatb):
+		# boxes = bfact.bisect(sbox, emap, NOMARK, negpoint)
+		for b in boxes:
+			if(not b.empty()):
+				if len(boxes) == 1:
+					item = (3, b) # not divided anymore
+				else:
+					item = (2, b)
+				boxesWPriority.append(item)
+	# #elif satb.fullyContains(b3) and negsatb.fullyContains(b3):
+	# elif satb.intersects(negsatb):    
+	#   for b in boxes:
+	#       if(not b.empty()):
+	#           if len(boxes) == 1:
+	#               item = (3, b)
+	#           else:
+	#               item = (2, b)
+	#           boxesWPriority.append(item)
+	else:
+		for b in boxes:
+			if(not b.empty()):
+				if len(boxes) == 1:
+					item = (3, b)
+				else:
+					item = (1, b)
+				boxesWPriority.append(item)
+	#print('heuristicPartition - boxes', len(boxes), len(boxesWPriority))
+	return boxesWPriority
+	
+def getNegatedProperty(prop, instance = None):  
+	#print('getNegatedProperty:'+'prop: ', prop.to_prefix())
+	'''negpn = prop #.negate().to_cnf()
+	tm_name = 'tm' #getVarName(instance.getModel(), 'tm')
+	mode_name = 'mode'
+	#print('getNegatedProperty: '+ str(tm_name))
+	tmInst = getVarInstance_t(instance , tm_name)[0]
+	tname = instance.getVarName(tmInst)
+
+	modeInst = getVarInstance_t(instance , mode_name)[0]
+	modeName = instance.getVarName(modeInst)
+
+	print('getNegatedProperty, '+ str(tm_name) +', '+ str(tmInst), tmInst.endValue.leftVal(), tmInst.endValue.rightVal())   
+	print('getNegatedProperty, '+ str(mode_name) +', '+ str(modeInst), modeInst.endValue.leftVal(), modeInst.endValue.rightVal())   
+	c1 = Node('>=', [Node(tname), Node(tmInst.endValue.leftVal())])
+	c2 = Node('<=', [Node(tname), Node(tmInst.endValue.rightVal())])
+
+	c3 = Node('=', [Node(mode_name), Node(modeInst.endValue.leftVal())])
+
+	clause = Node('&', [c1, c2])
+	#clause = Node('&', [c3])
+	# propneg = Node('&', [clause, negpn])
+
+	# prop = Node('&', [clause, pn])
+	# prop = pn '''
+	propneg = prop
+	#print('prop: ', prop.to_prefix())
+	if DEBUG:
+		print('negated prop: ', propneg.to_prefix())
+	return propneg
+	
+def getProperties(propstr): #, dtype):  
+	(p, pc) = propstr
+	pn = getSTL(p)[0]
+	negpn =  (getSTL(pc)[0]).to_cnf() #pc #pn.negate().to_cnf() #(getSTL(pc)[0]).to_cnf() #pn.negate().to_cnf()
+	# print(pn, negpn)
+	# print(type(pn), type(negpn))
+	#clause = Node('=', [Node('mode'), Node(str(dtype))])
+	
+	propneg = negpn #Node('&', [clause, negpn])
+	prop = pn # Node('&', [clause, pn])
+	#prop = pn
+	#propneg = negpn
+	if DEBUG:
+		print('prop: ', prop.to_prefix())
+		print('negated prop: ', propneg.to_prefix())
+	return (prop, propneg)
+
+def getBox(params):
+	edges = {}
+	for par in params:
+		rng = params[par]
+		left = rng.leftVal()
+		right = rng.rightVal()
+		it = PyInterval(left, right)
+		#it.mark()
+		edges.update({par: it}) 
+		
+	sbox = Box(edges)
+	return sbox
+
+def getPropertyFromData(data, outputEqns):
+	print('getPropertyFromData', data)
+	# Y = data
+	ffl = 0
+	if FNAME == 'bb' or FNAME == 'pc': # or FNAME == 'eg':
+		ffl = 1
+	mode = int(data[-1]) if ffl > 0 else 1
+	tm = data[0]
+	data_noise = DATA_NOISE 
+	time_noise = DATA_NOISE*TIME_NOISE# * 0.11
+	tm_0, tm_1  = tm*(1-time_noise), tm*(1+time_noise)
+	prop = '((mode = {0}) & (tm > {1}) & (tm < {2}) & ('.format(mode, tm_0, tm_1)
+	propn = '((mode = {0}) & (tm > {1}) & (tm < {2}) & ! ('.format(mode, tm_0, tm_1)	
+	# prop = '((tm > {0}) & (tm < {1}) & ('.format(tm_0, tm_1)
+	# propn = '((tm > {0}) & (tm < {1}) & ! ('.format(tm_0, tm_1)
+	# prop = '((tm = {0}) & ('.format(tm)
+	# propn = '((tm = {0}) & ! ('.format(tm)
+
+	i = 1
+	for key in outputEqns.keys():
+		if i < len(data) - ffl:
+			if data[i] >= 0:
+				k1, k2 = (data[i]*(1-data_noise), data[i]*(1+data_noise))
+			else:               
+				k1, k2 = (data[i]*(1+data_noise), data[i]*(1-data_noise))
+			#eqn = key #
+			eqn = outputEqns[key]
+			pr = '(({0}) > {1}) & (({0}) < {2})'.format(eqn, k1, k2)
+
+			prop += pr if i == 1 else ' & '+ pr 
+			propn += pr if i == 1 else ' & '+ pr 
+		i+= 1
+		#break
+	prop += '));' 
+	propn += '));' 
+	print('getPropertyFromData', prop, propn)
+	return prop, propn
+
+	
+if __name__ == "__main__":
+	start_time = time.time()
+	main(sys.argv[1:])
+	end_time = time.time()
+	print('Code Running duration: ', (end_time - start_time)/3600, ' hrs')
+

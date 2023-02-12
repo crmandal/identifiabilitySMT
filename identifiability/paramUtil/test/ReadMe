@@ -1,0 +1,4 @@
+Generated the simulation traces (.json files) for the .drh file with different parameter values (K, rho, radius, g).
+The traces are then parsed and the data stored in csv file (testData.csv)
+csv file columns:
+ 'time', 'K', 'radius', 'rho', 'g', 'x', 'v', 'mode'
