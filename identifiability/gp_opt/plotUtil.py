@@ -68,10 +68,10 @@ def fixed_fn_set(x, *pm):
 		return p*x^2	
 	elif op == 6:# FN1 y = p*x^(0.5)
 		return p*np.sqrt(x)
-	elif op == 6:# FN1 y = p/x^2
-		return p/x^2	
-	elif op == 6:# FN1 y = p/x^(0.5)
-		return p/np.sqrt(x)
+	# elif op == 6:# FN1 y = p/x^2
+	# 	return p/x^2	
+	# elif op == 6:# FN1 y = p/x^(0.5)
+	# 	return p/np.sqrt(x)
 	
 def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 	print('-------------- rational curve fit -----------')
@@ -218,13 +218,19 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 
 	def err_func(*params, log = False):
 		err = 0
+		p, op = params[0], int(params[1])
 		yHat = Calc_all(X, *params)
 		for i in range(len(X)):
 			x = X[i]
 			y = Y[i]
 			# rational3_3(x, *params) 
 			yhat = yHat[i]
-			err += (y - yhat)**2
+			if op in [1,2,4]:
+				err += ((y - yhat)/y)**2
+			else:
+				err += (y - yhat)**2
+
+			# print(x, y, yhat)
 		# err = mean_squared_error(Y, yHat)
 		if log:
 			print('err_func', err, X, Y, yHat)
@@ -289,10 +295,10 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 	eqn = getEqn(popt, nr = RF)
 	print('regression:', eqn[0], eqn[1])
 	if RF:
-		plt.plot([x+1 for x in X], Y, 'b.', label='locii of boxes')
+		plt.plot([x+1 for x in X], Y, 'b.', label='loci of boxes')
 		plt.plot([x+1 for x in X_sort], Y_sort, 'r-', label='fit')
 	else:
-		plt.plot([x for x in X], Y, 'b.', label='locii of boxes')
+		plt.plot([x for x in X], Y, 'b.', label='loci of boxes')
 		plt.plot(X_sort, Y_sort, 'g--', label='fit')
 		# plt.plot(X_sort, [popt[0]/x for x in X_sort], 'k--', label='fit')
 	plt.xlabel(names[0])
@@ -499,7 +505,7 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 				# x2.append(x12)
 				currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor='grey', alpha=1))
 			figs.append(fig_t)
-			figs.append(rat_f)
+			#figs.append(rat_f)
 
 	if len(par_names) > 2:
 		# param_len = 2 
@@ -570,7 +576,7 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 				ax.plot(xs[0], xs[1], 'b.')
 				ax.set_xlim(xlims[0])       
 				ax.set_ylim(xlims[1])
-				xs1 = [xp for xp in xs[0]] #if RF else  [x for x in x10] 
+				xs1 = [xp-1 for xp in xs[0]] if RF else  [xp for xp in xs[0]] 
 				xs2 = [xp for xp in xs[1]]
 				popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]])
 				eqns.append(eq[1])
@@ -650,7 +656,7 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 				ax.set_xlim(xlims[0])       
 				ax.set_ylim(xlims[1])
 
-				xs1 = [xp for xp in xs[0]] #if RF else  [x for x in x10] 
+				xs1 = [xp-1 for xp in xs[0]] if RF else  [xp for xp in xs[0]] 
 				xs2 = [xp for xp in xs[1]]
 				popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]])
 				eqns.append(eq[1])

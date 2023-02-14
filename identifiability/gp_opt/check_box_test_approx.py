@@ -1392,7 +1392,7 @@ def main(argv):
 			print(eqns)
 			print('------------------------------------------')
 			print('---- Number of valid points', len(sat_box), 'total decided', count2, len(unsat_box), c2)
-		if PLOT:
+		if PLOT and len(figs)>0:
 			pp = PdfPages(plotName)
 			for fig  in figs:
 				pp.savefig(fig)

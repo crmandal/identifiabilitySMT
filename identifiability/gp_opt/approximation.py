@@ -33,7 +33,7 @@ MAX_clusters = 30
 EPS = 0.001
 samples_per_dim = 3
 IVT = False
-# IVT = True
+IVT = True
 
 
 def extendEnvelope(covered_region, sbox, du =  0.05):
