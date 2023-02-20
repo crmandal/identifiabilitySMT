@@ -2,7 +2,7 @@
 SMT based parameter identifiable combination detection
 
 Requirements:
-1. dReal3 (https://github.com/dreal/dreal3)
+1. dReal3 (https://github.com/dreal/dreal3), add the executable to PATH
 2. python (python version > 3.6)
 3. python packages: numpy sympy scipy portion intervaltree pathos matplotlib ply pandas scikit-learn scikit-learn-extra
 

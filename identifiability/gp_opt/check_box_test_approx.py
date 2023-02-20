@@ -201,12 +201,12 @@ def main(argv):
 	try:
 		opts, args = getopt.getopt(argv,"hc:", ["ifile="])
 	except getopt.GetoptError:
-			print("check_box_test.py > logs/log.txt ")
+			print("check_box_test_approx.py -c config_file.json > logs/log.txt ")
 			sys.exit(2)
 			
 	for opt, arg in opts:
 		if opt in ("-h", "--help"):
-			print("check_box_test.py -c config_file.json > logs/log.txt ")
+			print("check_box_test_approx.py -c config_file.json > logs/log.txt ")
 			sys.exit()
 		elif opt in ("-c", "--cfile"):
 			configfile = arg
