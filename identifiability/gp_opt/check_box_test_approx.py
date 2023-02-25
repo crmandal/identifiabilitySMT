@@ -323,6 +323,7 @@ def main(argv):
 		return res
 
 	print(param_names)
+	max_degree = 1
 	connectedComponents = []
 	if len(connectedfile) > 0:
 		with open(connectedfile, 'r') as csvfile:
@@ -332,10 +333,12 @@ def main(argv):
 				rm = ['{0}'.format(row[r]) for r in range(len(row) - 1)]
 				if ifSubset(param_names, rm):
 					connectedComponents.append((rm, int(row[-1])))
+					if max_degree < int(row[-1]):
+						max_degree = int(row[-1])
 	else:
 		connectedComponents = [(param_names, 1)]
 	
-	print('connectedComponents', connectedComponents)
+	print('connectedComponents', connectedComponents, 'max_degree', max_degree)
 
 	default_param_box = default_param_boxes[0]
 	default_params = default_params_all[0]
@@ -1050,8 +1053,10 @@ def main(argv):
 					# decided_boxes.append(b)
 
 					if b.min_side_width() >= 0.5*MIN_EPS:
-						bg = b #.addDelta()#approx.getGRID(b, sbox_all, MIN_EPS)
-						kdt_false = kdt_false.insert(kdi.KDInterval(bg))
+						# bg = b #.addDelta()#approx.getGRID(b, sbox_all, MIN_EPS)
+						bg = kdi.KDInterval(b)
+						#print('False', str(b), str(bg))
+						kdt_false = kdt_false.insert(bg)
 
 				elif(r == TRUE):    
 					''' if given range subset of b then return true '''
@@ -1154,10 +1159,10 @@ def main(argv):
 							#   vol_covered += b1.volume()  
 							#   print('-- discarding box {0} after multiple attempts'.format(b1))
 						ts1 = kdt_true.len() if kdt_true else 0.0
-						ts2 = 0 #kdt_false.len() if kdt_false else 0.0
+						ts2 = kdt_false.len() if kdt_false else 0.0
 					
-						if DEBUG:
-							print(ts1, ts2, 'checking partitioned boxes...', len(boxes), len(nbx))#, str(nbx))
+						#if DEBUG:
+						print(ts1, ts2, 'checking partitioned boxes...', len(boxes), len(nbx))#, str(nbx))
 			
 			# if fflag:
 			# 	break
@@ -1337,7 +1342,7 @@ def main(argv):
 				pre_gen = i
 				print('--- plotting for gen ', i, 'NPG', str(i%2==0))
 				pre_eqn = eqns
-				figs, eqns = plt.plot_sat_boxes(sbox_all, sat_box, par_names, ratio1, npg, centres, i, unsat_box) 
+				figs, eqns = plt.plot_sat_boxes(sbox_all, sat_box, par_names, ratio1, npg, centres, i, unsat_box, df=max_degree) 
 				print('------------- regression equation --------', fp_count, '-----------')
 				print(pre_eqn)				
 				print(eqns)
@@ -1354,8 +1359,15 @@ def main(argv):
 				else:				
 					fp_count = 0
 
-				if fp_count > 20:
-					print('--------------- completing iterations -------------', fp_count)
+
+				if len(par_names) <= 2 and max_degree < 2  and fp_count > 50: # 2D, curve
+					print('--------------- completing iterations -------------', len(par_names), max_degree, fp_count)
+					break
+				elif len(par_names) > 2 and max_degree < 2 and fp_count > 20: # > 2D, curve
+					print('--------------- completing iterations -------------', len(par_names), max_degree,  fp_count)
+					break
+				elif len(par_names) > 2 and  max_degree >= 2 and fp_count > 10: # >2D, surface
+					print('--------------- completing iterations -------------', len(par_names), max_degree, fp_count)
 					break
 
 
@@ -1368,7 +1380,7 @@ def main(argv):
 				break
 
 
-			if len(sat_box) > 500: 
+			if len(sat_box) > len(par_names)*100: 
 				diff_box = true_covered.addDelta(MIN_EPS_4)
 				if not sbox_all.fullyContains(diff_box):
 					print('--------------- completing iterations -------------', sbox_all, diff_box, true_covered)
@@ -1387,7 +1399,7 @@ def main(argv):
 		if len(sat_box) > 50: 
 			st_clone = queue.clone()
 			plt.writeToFile(all_sat_file, all_q_file, sat_box, st_clone, par_names, unsat_box) 
-			figs, eqns = plt.plot_sat_boxes(sbox_all, sat_box, par_names, ratio1, unsat_box=unsat_box) 
+			figs, eqns = plt.plot_sat_boxes(sbox_all, sat_box, par_names, ratio1, unsat_box=unsat_box, df = max_degree) 
 			print('------------- regression equation --------')		
 			print(eqns)
 			print('------------------------------------------')

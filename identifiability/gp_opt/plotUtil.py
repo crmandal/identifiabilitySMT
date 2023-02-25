@@ -314,7 +314,7 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 	return popt, eqn, f
 
 
-def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_centers = [], gen = 0, unsat_box = []):
+def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_centers = [], gen = 0, unsat_box = [], df = 1):
 	figs = []
 	n_par = len(par_names)  
 	contract = {}
@@ -395,7 +395,7 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 			# ax.set_zlim(zlim)
 			figs.append(fig1)
 
-	if len(par_names) >= 2:
+	if len(par_names) >= 2 and df <= 1:
 		param_len = 2 
 		# for all_params in dependent:
 		#   # param_len = len(all_params.keys())
@@ -507,7 +507,7 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 			figs.append(fig_t)
 			#figs.append(rat_f)
 
-	if len(par_names) > 2:
+	if len(par_names) > 2 and df > 1:
 		# param_len = 2 
 		subsets_n1 = findsubsets(par_names, len(par_names)-1)
 		for sub in subsets_n1: 
@@ -658,9 +658,9 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 
 				xs1 = [xp-1 for xp in xs[0]] if RF else  [xp for xp in xs[0]] 
 				xs2 = [xp for xp in xs[1]]
-				popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]])
-				eqns.append(eq[1])
-				figs.append(rat_f)
+				#popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]])
+				#eqns.append(eq[1])
+				#figs.append(rat_f)
 				
 			figs.append(fig)
 	return figs, eqns
