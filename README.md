@@ -37,12 +37,15 @@ For Example 5 (4D, ODE):
 For Example 6 (4D, HS):
 
 > python gp_opt/check_box_test_approx.py -c examples/pc4/pc21/config_pc.json > logs/log_pc_21.txt
+
 > python gp_opt/check_box_test_approx.py -c examples/pc4/pc41/config_pc.json > logs/log_pc_41.txt
 
 For Example 7 (5D, ODE):
 
 > python gp_opt/check_box_test_approx.py -c examples/ex2/ex21/config_pc.json > logs/log_ex2_21.txt
+
 > python gp_opt/check_box_test_approx.py -c examples/ex2/ex22/config_pc.json > logs/log_ex2_22.txt
+
 > python gp_opt/check_box_test_approx.py -c examples/ex2/ex23/config_pc.json > logs/log_ex2_23.txt
 
 
