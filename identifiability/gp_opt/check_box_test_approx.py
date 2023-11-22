@@ -1148,7 +1148,7 @@ def main(argv):
 					False_boxes.append(b)
 
 
-					if b.min_side_width() >= RES/2: #0.5*MIN_EPS:
+					if b.min_side_width() >= 0.5*MIN_EPS: # RES/2:
 						# bg = b #.addDelta()#approx.getGRID(b, sbox_all, MIN_EPS)
 						# bg = kdi.KDInterval(b)
 						bg = kdi.KDInterval(approx.getGRID(b, sbox_all, RES))
