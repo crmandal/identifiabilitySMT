@@ -1,0 +1,2 @@
+TSH = tsh;
+T34 = T3p+T4p;

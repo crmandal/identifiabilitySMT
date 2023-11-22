@@ -1,0 +1,58 @@
+#define pi 3.1412
+#define w (2*pi/24)
+#define phi 3.71
+#define c11 2
+#define d_tsh 0.756
+#define deg_t3b 0.037
+#define k34_d 0.118
+#define a 0.4983
+#define b 1.166
+#define t3p 0.006
+#define t4p 0.29
+#define sc (3)
+
+#define k34s (k34/sc)
+
+[0, 4.0] tsh;
+[0, 0.5] t3b;
+[0, 0.01] T3p;
+[0, 0.4] T4p;
+[0, 5] time;
+[0, 5] tm;
+
+[0.5*phi, 1.5*phi] p;
+[0.5*d_tsh, 1.5*d_tsh] bs;
+[0.5*deg_t3b, 1.5*deg_t3b] b32;
+[0.5*a, 1.5*a] a0;
+[0.5*b, 1.5*b] b0;
+[0.1, 2.0] c1;
+[0.1, 2.0] c2;
+[0.1, 2.0] k34;
+
+
+{ mode 1;
+
+  invt:
+  flow:
+        d/dt[tsh] = b0*(1+ a0 * sin(w*tm + p)*exp(-c1*c2*t3b)) - bs*tsh;
+        d/dt[t3b] = k34s*(T3p+T4p) - b32*t3b;
+        d/dt[T3p] = 0.0;
+        d/dt[T4p] = 0.0;
+        d/dt[tm] = 1;
+        d/dt[k34] = 0;
+        d/dt[c1] = 0;
+        d/dt[c2] = 0;
+        d/dt[p] = 0;
+        d/dt[bs] = 0;
+        d/dt[b32] = 0;
+        d/dt[a0] = 0;
+        d/dt[b0] = 0;
+  jump:
+}
+
+init:
+@1  (and (tm = 0) (tsh = 1.74) (t3b = 0) (T3p = 0.006) (T4p = 0.29) (p = 3.71) (bs = 0.756) (b32 = 0.037) (a0 = 0.4983) (b0 = 1.166));
+
+goal:
+@1 (and (tm > 6));
+

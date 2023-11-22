@@ -1,0 +1,66 @@
+#define mass1 100
+#define pi 3.1412
+#define rho1 1.22
+#define c1 0.47
+#define rad1 0.3
+#define ar1 0.3
+#define sc (10.0)
+
+#define xs (x*sc)
+#define vs (v*sc)
+
+[0,15/sc] x;
+[-18/sc,18/sc] v;
+[0, 5] time;
+[0, 5] tm;
+[0.8,2.2] state;
+
+[0.93, 0.96] K;
+[0.1, 2.0] c;
+[0.1, 2.0] r;
+[0.03, 2.0] a;
+[9.6, 10.0] g;
+
+{ mode 1;
+
+  invt:
+        (vs <= 0);
+        (xs >= 0);
+  flow:
+        d/dt[x] = vs/sc;
+        d/dt[v] = (-g + (0.5 * c * a * r * vs^2)/mass1)/sc;
+        d/dt[tm] = 1;
+        d/dt[K] = 0;
+        d/dt[g] = 0;
+        d/dt[c] = 0;
+        d/dt[r] = 0;
+        d/dt[a] = 0;
+        d/dt[state] = 0.0;
+  jump:
+        (xs <= 0) ==> @2 (and (tm'= tm) (x' = x) (v' = -K * v) (K' = K) (a' = a) (g' = g)  (c' = c) (r' = r) (state' = 2));
+}
+
+{ mode 2;
+  invt:
+        (vs >= 0);
+        (xs >= 0);
+  flow:
+        d/dt[x] = vs/sc;
+        d/dt[v] = (-g - (0.5 * c * a * r * vs^2)/mass1)/sc;
+        d/dt[tm] = 1;
+        d/dt[K] = 0;
+        d/dt[g] = 0;
+        d/dt[c] = 0;
+        d/dt[r] = 0;
+        d/dt[a] = 0;
+        d/dt[state] = 0.0;
+  jump:
+        (vs <= 0) ==> @1 (and (tm'= tm) (x' = x) (v' = v) (K' = K) (a' = a) (g' = g) (c' = c) (r' = r)  (state' = 1));
+}
+init:
+@1  (and (x = 10/sc) (v = 0) (tm = 0) (state = 1) (K = 0.95) (g = 9.8) (c = 0.47));
+
+goal:
+@1 (and (tm > 0.65) (tm < 0.67) (xs > 7.91) (xs < 7.96) (vs > (- 6.4)) (vs < (- 6.2)));
+@2 (and (tm > 6));
+

@@ -140,10 +140,13 @@ class Box:
 			if(it in b_edges):
 				#print('Box['+it+'] : '+ str(intrvl)+', SubBox['+it+'] : '+ str(b_edges[it]))
 				if(not intrvl.contains(b_edges[it])):
+					#print('---- False')
 					return False;
 			else:
 				print('The target box does not contain variable: \'' + it + '\'')
 				raise ValueError()
+
+		#print('---- True')
 		return True;
 	
 		

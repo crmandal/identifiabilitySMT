@@ -284,6 +284,7 @@ class PyInterval(object):
 		return PyInterval(np.min([a/c, a/d, b/c, b/d]), np.max([a/c, a/d, b/c, b/d]))
 
 	def contains(self, other):
+		# print('Interval', str(self), str(other))
 		if isinstance(other, PyInterval):
 			return self.containsInterval(other)
 		elif isinstance(other, int) or isinstance(other, float) :

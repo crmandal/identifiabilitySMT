@@ -20,15 +20,17 @@ UNKNOWN = -1
 TRUE = 1
 FALSE = 0
 UNDET = 2
+PRED = 3
 ONLYMARKED = 1
 NOMARK = 0
 RF = False
+RES = 0.1
 
 def findsubsets(S,m):
 	return set(itertools.combinations(S, m))
 
 
-def plotBox(currentAxis, b, combs, col1 = 'grey', boxType= FALSE):
+def plotBox(currentAxis, b, combs, col1 = 'grey', boxType= PRED):
 	#if boxType = TRUE:
 	# print(boxType)
 	col = col1 #'white'
@@ -37,7 +39,9 @@ def plotBox(currentAxis, b, combs, col1 = 'grey', boxType= FALSE):
 	elif boxType == UNDET:
 		col = 'white'
 	elif boxType == FALSE:
-		col = 'black'
+		col = 'grey'
+	else:
+		col = col1
 	# plt.figure()  
 	if b.size() == 2:
 		b_edges = b.get_map()
@@ -47,7 +51,7 @@ def plotBox(currentAxis, b, combs, col1 = 'grey', boxType= FALSE):
 			intrvl = b_edges[it]
 			x.append(intrvl.leftBound())
 			w.append(intrvl.width())
-		currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor=col, alpha=1))
+		currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor=col1, alpha=1))
 	# plotBox.show()
 	# return plt
 
@@ -73,7 +77,7 @@ def fixed_fn_set(x, *pm):
 	# elif op == 6:# FN1 y = p/x^(0.5)
 	# 	return p/np.sqrt(x)
 	
-def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
+def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1, xlim1=[], ylim1 = []):
 	print('-------------- rational curve fit -----------')
 	def getEqn(popt, nr = True):
 		if nr:
@@ -268,7 +272,7 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 				pre_order = i
 
 	else:
-		for i in range(1, 7):
+		for i in range(1, 5):
 			# i = 3
 			params = [1.0, i]
 			# optimizer = minimize(err_func, params)#, method = 'nelder-mead') #
@@ -303,6 +307,10 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 		# plt.plot(X_sort, [popt[0]/x for x in X_sort], 'k--', label='fit')
 	plt.xlabel(names[0])
 	plt.ylabel(names[1])
+	xmin, xmax = xlim1
+	ymin, ymax = ylim1
+	plt.xlim(xmin, xmax)
+	plt.ylim(ymin, ymax)
 	plt.title(eqn[1])
 	# print([popt[0]/x for x in X_sort], Y_sort)
 	#else:
@@ -315,6 +323,7 @@ def rational_cf(X, Y, names = ['x', 'y'], order = 3, dec = 1):
 
 
 def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_centers = [], gen = 0, unsat_box = [], df = 1):
+
 	figs = []
 	n_par = len(par_names)  
 	contract = {}
@@ -372,7 +381,9 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 				x2.append(x12)
 				x3.append(x13)
 
-			if gen%2 ==0:
+			if gen%3 == 0:
+				ax.plot3D(x1, x2, x3, 'c.')
+			elif gen%3 == 1:
 				ax.plot3D(x1, x2, x3, 'r.')
 			else:
 				ax.plot3D(x1, x2, x3, 'm.')
@@ -427,8 +438,9 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 			x1 = []
 			x10 = []
 			x2 = []
+
+			p1, p2 = sub
 			for satb in sat_boxes:
-				p1, p2 = sub
 				
 				sat = satb.get_map()
 				x11 = (sat[p1].mid().leftBound())
@@ -440,12 +452,14 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 				#currentAxis.add_patch(Rectangle((x[0], x[1]), w[0], w[1], facecolor='grey', alpha=1))
 			
 			currentAxis.plot(x10, x2, 'b.')
+			xlim1, ylim1 = param_bounds_all[par[0]], param_bounds_all[par[1]]
 
 			xs1 = [x-1 for x in x10] if RF else  [x for x in x10] 
 			xs2 = [x for x in x2]
-			popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]])
-			eqns.append(eq[1])
-			figs.append(rat_f)
+			if len(xs1) > 3 and len(xs2) > 3:
+				popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]], xlim1 = xlim1, ylim1=ylim1)
+				eqns.append(eq[1])
+				figs.append(rat_f)
 
 			if len(par_names) == 2:
 				x1 = []
@@ -468,7 +482,12 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 					ww.append(sat[p1].width())
 					ww.append(sat[p2].width())
 					#currentAxis.add_patch(Rectangle((xx[0], xx[1]), ww[0], ww[1], facecolor='grey', alpha=1))
-					plotBox(currentAxis, satb, sub, 'red') if gen%2==0 else plotBox(currentAxis, satb, sub, 'magenta') 
+					if gen%3==0:
+						plotBox(currentAxis, satb, sub, 'cyan')  
+					elif gen%3 == 1:
+						plotBox(currentAxis, satb, sub, 'red')  
+					else:
+						plotBox(currentAxis, satb, sub, 'magenta') 
 					#print('NPG boxes', ww)
 				
 				#if gen%2 ==0:
@@ -519,7 +538,7 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 			extra_par_id = contract[extra_par]
 			extra_par_bounds = param_bounds_all[extra_par_id] #param_bounds_all[extra_par_id]
 			lb , ub = extra_par_bounds[0], extra_par_bounds[1]
-			extra_par_slices = np.linspace(lb, ub, int((ub - lb)/0.01))
+			extra_par_slices = np.linspace(lb, ub, int((ub - lb)/RES))
 			# print(extra_par, 'extra_par_slices', extra_par_slices)
 
 			par = [contract[i] for i in sub]
@@ -578,9 +597,10 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 				ax.set_ylim(xlims[1])
 				xs1 = [xp-1 for xp in xs[0]] if RF else  [xp for xp in xs[0]] 
 				xs2 = [xp for xp in xs[1]]
-				popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]])
-				eqns.append(eq[1])
-				figs.append(rat_f)
+				if len(xs1) > 3 and len(xs2) > 3:
+					popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]], xlim1 = xlims[0], ylim1=xlims[1])
+					eqns.append(eq[1])
+					figs.append(rat_f)
 			figs.append(fig)
 
 		subsets_n1 = findsubsets(par_names, 2)
@@ -597,7 +617,7 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 			for ep in extra_pars:
 				ep_bound = param_bounds_all[contract[ep]]
 				lb , ub = ep_bound[0], ep_bound[1]
-				extra_par_slices[ep] = np.linspace(lb, ub, int((ub - lb)/0.01))
+				extra_par_slices[ep] = np.linspace(lb, ub, int((ub - lb)/RES))
 				# print(ep, 'extra_par_slices', len(extra_par_slices[ep]))
 
 			par = [contract[i] for i in sub]
@@ -658,9 +678,10 @@ def plot_sat_boxes(sbox_all, sat_boxes, par_names, ratio=100, npg = [], cluster_
 
 				xs1 = [xp-1 for xp in xs[0]] if RF else  [xp for xp in xs[0]] 
 				xs2 = [xp for xp in xs[1]]
-				#popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]])
-				#eqns.append(eq[1])
-				#figs.append(rat_f)
+				if len(xs1) > 3 and len(xs2) > 3:
+					popt, eq, rat_f = rational_cf(xs1, xs2, [axisname[0], axisname[1]], xlim1 = xlims[0], ylim1=xlims[1])
+					eqns.append(eq[1])
+					figs.append(rat_f)
 				
 			figs.append(fig)
 	return figs, eqns

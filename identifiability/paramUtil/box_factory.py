@@ -944,3 +944,14 @@ def diag_to_Box(edges, p1, p2):
 	box = Box(b_edges)
 	# print('diag_to_Box', p1, p2, box)
 	return box
+
+def fromInterval(names, kdi):
+	if not len(names) == kdi.dimension:
+		return None
+	snmaes = sorted(names)
+	lp = kdi.lower
+	up = kdi.upper
+	edges = {}
+	for i in range(len(snmaes)):
+		edges.update({snmaes[i]:PyInterval(lp.V[i], up.V[i])})
+	return Box(edges)

@@ -1,4 +1,4 @@
-import heapq
+import heapq # min heap
 from builtins import min as _min, max as _max
 from itertools import tee,  count #izip, imap,
 from operator import itemgetter
@@ -37,8 +37,18 @@ class HeapQ:
 	def size(self):
 		return len(self._data)
 
-	def clean(self):
-		self._data = []
+	def clean(self, n=-1):
+		if n == -1:
+			self._data = []
+		else:
+			data1 = []
+			for i in range(0, n):
+				# if not(i == ind):
+				data1.append(self._data[i])
+			self._data = data1
+			heapq.heapify(self._data)
+			
+
 		
 	def randomPop(self):
 		n = self.size()

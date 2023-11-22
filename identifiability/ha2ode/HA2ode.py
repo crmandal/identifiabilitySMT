@@ -110,11 +110,11 @@ def createSimulator(indatafile, inputfile, outputfile, delta, paramdefaultfile =
 
 	# read a HA
 	ha1 = getModel(inputfile)
-	ha = ha1.simplify()
-	# print('model parsed')
-	# print('############ simplified HA ############')
-	# print(ha)
-	# print('############')
+	ha = ha1.simplify(ONLY = False)
+	print('model parsed')
+	print('############ simplified HA ############')
+	print(ha)
+	print('############')
 
 	outputEqns1 = getEquationsFile(outputfile)
 	for var in outputEqns1:
@@ -155,18 +155,20 @@ def createSimulator(indatafile, inputfile, outputfile, delta, paramdefaultfile =
 		fr = csv.reader(fp, delimiter=',')
 		for row in fr:
 			data = [float(row[i]) for i in range(len(row))]
-			tm = data[0]
-			observed_timespace.append(tm)
-			i = 1
-			for key in outputEqns.keys():
-				if i < len(data) :
-					if key in obs_data_dict:
-						dk = obs_data_dict[key]
-					else:
-						dk = []
-					dk.append(data[i])
-					obs_data_dict.update({key:dk})
-				i += 1
+			print('indatafile', data)
+			if len(data) > 0:
+				tm = data[0]
+				observed_timespace.append(tm)
+				i = 1
+				for key in outputEqns.keys():
+					if i < len(data) :
+						if key in obs_data_dict:
+							dk = obs_data_dict[key]
+						else:
+							dk = []
+						dk.append(data[i])
+						obs_data_dict.update({key:dk})
+					i += 1
 	for key in obs_data_dict:
 		kl = obs_data_dict[key]
 		observable_data.append(kl)
