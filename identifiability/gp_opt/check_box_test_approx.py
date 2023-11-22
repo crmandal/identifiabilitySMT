@@ -105,7 +105,7 @@ NOMARK = 0
 
 DEBUG = True
 DEBUG = False
-dRealCmd = "dReal3"
+dRealCmd = "dReal"
 # Optimizer = collections.namedtuple('Optimizer', ['x', 'fun', 'success'])
 Instance = collections.namedtuple('Instance', ['p1', 'p2'])
 BoxEvaluate = collections.namedtuple('BoxEvaluate', ['ip', 'op'])
