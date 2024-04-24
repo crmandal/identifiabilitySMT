@@ -1,0 +1,106 @@
+#define ax_in	0.0204
+#define ay_in	0.0242
+#define bx_in	0.0202
+#define by_in	0.0168
+#define k1_in	10.0
+#define k2_in	1.0
+#define k3_in	10.0
+#define k4_in	2.0
+#define m1_in	0.00005
+#define z0_in	12.0
+#define c1_in	0.01
+#define	c2_in	0.05
+#define c3_in 0.02
+#define tau_in	12.5
+
+#define x_init 30
+#define y_init 0.1
+#define z_init 15
+#define r0 5.2	
+#define r1 10.8
+
+#define m1 m1_in
+#define z0 z0_in
+#define d0 1
+#define sc 60.0
+
+#define ax ax_in
+#define ay ay_in
+#define bx bx_in
+#define by by_in
+#define m1 m1_in
+#define c1 c1_in
+#define c2 c2_in
+#define c3 c3_in
+#define tau tau_in
+#define z0 z0_in
+
+#define sc_x (20.0)
+#define sc_y (1/5.0)
+#define sc_z (10.0)
+
+#define x (xs*sc_x)
+#define y (ys*sc_y)
+#define z (zs*sc_z)
+#define eps 0.01
+
+[0, 1.2*x_init/sc_x] xs;
+[0, 10*y_init/sc_y] ys;
+[0, 1.2*z_init/sc_z] zs;
+
+[0, 300/sc] time;
+[0, 300/sc] tm;
+
+[9.8, 10.2] k1;
+[0.8, 1.2] k2;
+[9.8, 10.2] k3;
+[0.2, 2] k41;
+[0.2, 2] k42;
+[1,2] state;
+
+{ mode 1;
+
+  invt:
+	((x+y) >= r0);
+  flow:
+        d/dt[xs] = ((ax/(1+exp((k1-z)*k2)) - bx/(1+exp((z - k3)*(k41+k42))) -m1*(1-z/z0) - c1)*x + c2)*sc/sc_x;
+        d/dt[ys] = (m1*(1-z/z0)*x + (ay*(1-d0*z/z0) - by)*y)*sc/sc_y;
+        d/dt[zs] = (-z*tau + c3)*sc/sc_z ; 
+        d/dt[tm] = 1.0;
+        
+        d/dt[k1] = 0;
+        d/dt[k2] = 0;
+        d/dt[k3] = 0;
+        d/dt[k41] = 0;
+        d/dt[k42] = 0;
+        d/dt[state] = 0;
+  jump:
+   (and ((x+y) <= r0 + eps) ) ==> @2 (and (tm'=tm)  (state' = 2) (xs' = xs) (ys' = ys) (zs' = zs)  (k1' = k1) (k2' = k2) (k3' = k3)  (k41' = k41) (k42' = k42)  );
+  
+}
+{ mode 2;
+
+  invt:
+	((x+y) <= r1+eps);
+  flow:
+        d/dt[xs] = ((ax/(1+exp((k1-z)*k2)) - bx/(1+exp((z - k3)*(k41+k42))) -m1*(1-z/z0) - c1)*x + c2)*sc/sc_x;
+        d/dt[ys] = (m1*(1-z/z0)*x + (ay*(1-d0*z/z0) - by)*y)*sc/sc_y;
+        d/dt[zs] = ((z0-z)*tau + c3)*sc/sc_z ;
+        d/dt[tm] = 1.0;
+        
+        d/dt[k1] = 0;
+        d/dt[k2] = 0;
+        d/dt[k3] = 0;
+        d/dt[k41] = 0;
+        d/dt[k42] = 0;
+        d/dt[state] = 0;
+  jump:
+   (and ((x+y) >= r1) ) ==> @1 (and (tm'=tm) (state' = 1) (xs' = xs) (ys' = ys) (zs' = zs)  (k1' = k1) (k2' = k2) (k3' = k3) (k41' = k41) (k42' = k42)  );
+}
+
+init:
+@1  (and  (tm=0) (state = 1) (xs = 30.0/sc_x) (ys = 0.2/sc_y) (zs = 15.0/sc_z) (k1 = 10) (k2 = 1) (k3 = 10));
+
+goal:
+@1 (and (tm > 0.5));
+
