@@ -30,13 +30,13 @@ For Example 4 (3D, HS):
 
 > python gp_opt/check_box_test_approx.py -c examples/bb/config_bb.json > logs/log_bb.txt
 
-with decomposition:
-
-> python gp_opt/check_box_test_approx.py -c examples/bb/decompose/bb_1/config_bb.json > logs/log_bb_1.txt
-
-> python gp_opt/check_box_test_approx.py -c examples/bb/decompose/bb_1/config_bb.json > logs/log_bb_2.txt
-
-> python gp_opt/check_box_test_approx.py -c examples/bb/decompose/bb_1/config_bb.json > logs/log_bb_3.txt
+	with decomposition:
+	
+	> python gp_opt/check_box_test_approx.py -c examples/bb/decompose/bb_1/config_bb.json > logs/log_bb_1.txt
+	
+	> python gp_opt/check_box_test_approx.py -c examples/bb/decompose/bb_1/config_bb.json > logs/log_bb_2.txt
+	
+	> python gp_opt/check_box_test_approx.py -c examples/bb/decompose/bb_1/config_bb.json > logs/log_bb_3.txt
 
 For Example 5 (4D, ODE):
 
@@ -58,21 +58,21 @@ For Example 7 (5D, ODE):
 
 For explicit non-detrminism in HS:
 
-For Prostate cancer example:
+	For Prostate cancer example:
 
-with non-determinsm in jump condition:
-
-> python gp_opt/check_box_test_approx.py -c examples/nd/pc-nd/config_pc.json > logs/log_pc-nd.txt
-
-For Bouncing ball example:
-
-with non-determinsm in initial condition:
-
-> python gp_opt/check_box_test_approx.py -c examples/nd/bb_3-ndK/config_bb.json > logs/log_bb_3-ndK.txt
-
-with non-determinsm in jump condition:
-
-> python gp_opt/check_box_test_approx.py -c examples/nd/bb_3-nd/config_bb.json > logs/log_bb_3-nd.txt
+		with non-determinsm in jump condition:
+	
+		> python gp_opt/check_box_test_approx.py -c examples/nd/pc-nd/config_pc.json > logs/log_pc-nd.txt
+	
+	For Bouncing ball example:
+	
+		with non-determinsm in initial condition:
+		
+		> python gp_opt/check_box_test_approx.py -c examples/nd/bb_3-ndK/config_bb.json > logs/log_bb_3-ndK.txt
+		
+		with non-determinsm in jump condition:
+		
+		> python gp_opt/check_box_test_approx.py -c examples/nd/bb_3-nd/config_bb.json > logs/log_bb_3-nd.txt
 
 
 
