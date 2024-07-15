@@ -224,9 +224,9 @@ def getAPPROXBoxes(sbox, pre_envelope, current_sbox, kdt_true, kdt_false, true_b
 
 	npg = []
 	# print('t_boxes', len(t_boxes), 'gen', gen)
-	NPG = False
-	#NPG = True 
-	#NPG = True if ((gen%2==0) and len(t_boxes) > len(par_names)) else False
+	#NPG = False # For gradient only
+	#NPG = True # For GPR only
+	NPG = True if ((gen%2==0) and len(t_boxes) > len(par_names)) else False
 	print('In Approx boxes', du, gen, NPG, gen%2==0, len(t_boxes), len(par_names))
 	
 	rn1 =  np.random.uniform(0, 1, 1)[0]
